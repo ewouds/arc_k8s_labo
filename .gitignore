@@ -1,0 +1,16 @@
+# Azure Developer CLI
+.azure/
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.swp
+*.swo

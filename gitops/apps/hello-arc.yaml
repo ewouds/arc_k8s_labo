@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-arc
+  namespace: gitops-demo
+  labels:
+    app: hello-arc
+    environment: workshop
+    managed-by: flux
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-arc
+  template:
+    metadata:
+      labels:
+        app: hello-arc
+        environment: workshop
+    spec:
+      containers:
+        - name: hello-arc
+          image: mcr.microsoft.com/azuredocs/aks-helloworld:v1
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: TITLE
+              value: "Hello from Azure Arc GitOps! 🚀"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-arc
+  namespace: gitops-demo
+  labels:
+    app: hello-arc
+    environment: workshop
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    app: hello-arc

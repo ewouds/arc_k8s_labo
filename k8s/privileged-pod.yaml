@@ -1,0 +1,19 @@
+# This pod will be BLOCKED by Azure Policy
+# Use this to demo policy enforcement (step 05)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged-test
+  namespace: demo
+  labels:
+    environment: workshop
+spec:
+  containers:
+    - name: privileged-container
+      image: nginx:1.25-alpine
+      securityContext:
+        privileged: true    # <-- This will be denied by policy!
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi

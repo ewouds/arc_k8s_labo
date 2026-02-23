@@ -1,0 +1,18 @@
+# Azure Developer CLI (azd) project configuration
+# Run `azd up` to provision all infrastructure for this workshop
+name: arc-k8s-workshop
+metadata:
+  template: arc-k8s-workshop
+
+infra:
+  provider: bicep
+  path: infra
+  module: main
+
+# Hooks for pre/post provisioning
+hooks:
+  preprovision:
+    shell: sh
+    run: scripts/sh/00-prereqs.sh
+    interactive: true
+    continueOnError: false

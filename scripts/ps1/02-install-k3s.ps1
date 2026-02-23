@@ -1,0 +1,72 @@
+# ============================================================================
+# Script 02 - Install K3s (Lightweight Kubernetes by Rancher)
+# Run this ON THE VM via SSH (copy-paste commands)
+# ============================================================================
+# Usage:
+#   1. SSH into the VM:  ssh azureuser@<VM_PUBLIC_IP>
+#   2. Run these commands on the VM (bash)
+#
+# NOTE: K3s runs on Linux. This script SSHs into the VM and runs the install.
+# ============================================================================
+$ErrorActionPreference = "Stop"
+
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "  Install K3s on the VM via SSH"            -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan
+
+# --- Get VM IP from AZD ---
+$vmIp = (azd env get-value VM_PUBLIC_IP 2>$null)
+if (-not $vmIp) {
+    $vmIp = Read-Host "Enter VM Public IP"
+}
+$vmUser = "azureuser"
+
+Write-Host ""
+Write-Host "📋 Target: $vmUser@$vmIp" -ForegroundColor Yellow
+
+Write-Host ""
+Write-Host "🚀 Installing K3s via SSH..." -ForegroundColor Yellow
+Write-Host "  This will:"
+Write-Host "    1. Update system packages"
+Write-Host "    2. Install K3s (single-node cluster)"
+Write-Host "    3. Configure kubectl"
+Write-Host ""
+
+# SSH into VM and run install
+ssh -o StrictHostKeyChecking=no "${vmUser}@${vmIp}" @"
+set -e
+echo '📦 Updating system packages...'
+sudo apt-get update -y && sudo apt-get upgrade -y
+
+echo '🚀 Installing K3s...'
+curl -sfL https://get.k3s.io | sh -
+
+echo '⏳ Waiting for K3s...'
+sleep 10
+
+echo '🔧 Configuring kubectl...'
+mkdir -p ~/.kube
+sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+sudo chown \$(id -u):\$(id -g) ~/.kube/config
+export KUBECONFIG=~/.kube/config
+echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+
+echo ''
+echo '--- Node Status ---'
+kubectl get nodes -o wide
+echo ''
+echo '--- System Pods ---'
+kubectl get pods -A
+echo ''
+echo '--- K3s Version ---'
+k3s --version
+
+echo ''
+echo '✅ K3s installed and running!'
+"@
+
+Write-Host ""
+Write-Host "============================================" -ForegroundColor Cyan
+Write-Host "  ✅ K3s installation complete!"            -ForegroundColor Green
+Write-Host "  Next: Run 03-arc-onboard.ps1"             -ForegroundColor Cyan
+Write-Host "============================================" -ForegroundColor Cyan

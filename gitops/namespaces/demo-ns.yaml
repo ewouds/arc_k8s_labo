@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops-demo
+  labels:
+    environment: workshop
+    managed-by: flux
