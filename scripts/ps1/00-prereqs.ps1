@@ -89,6 +89,48 @@ foreach ($ext in $extensions) {
     }
 }
 
+# --- 5. Check VM SKU capacity in selected region ---
+Write-Host ""
+Write-Host "🔍 Checking VM SKU availability..." -ForegroundColor Yellow
+
+$vmSize = if ($env:VM_SIZE) { $env:VM_SIZE } else { "Standard_D4s_v3" }
+$location = if ($env:AZURE_LOCATION) { $env:AZURE_LOCATION } else { $null }
+
+if ($location) {
+    $skuJson = az vm list-skus --location $location --size $vmSize --resource-type virtualMachines -o json 2>$null
+    $skuInfo = $skuJson | ConvertFrom-Json
+
+    if (-not $skuInfo -or $skuInfo.Count -eq 0) {
+        Write-Host "  ❌ VM size '$vmSize' is not available in region '$location'." -ForegroundColor Red
+        Write-Host "     Choose a different region or set VM_SIZE to an available SKU." -ForegroundColor Red
+        Write-Host "     Check available sizes: az vm list-skus --location $location --resource-type virtualMachines --query `"[?name=='$vmSize']`" -o table" -ForegroundColor DarkYellow
+        exit 1
+    }
+
+    $restricted = $skuInfo | Where-Object {
+        $_.restrictions | Where-Object { $_.type -eq 'Location' }
+    }
+    if ($restricted) {
+        Write-Host "  ❌ VM size '$vmSize' is restricted in region '$location'." -ForegroundColor Red
+        Write-Host "     Reason: $($restricted[0].restrictions[0].reasonCode)" -ForegroundColor Red
+        Write-Host "     Choose a different region or set VM_SIZE to an available SKU." -ForegroundColor Red
+        exit 1
+    }
+
+    # Check for zone restrictions (warning only)
+    $zoneRestricted = $skuInfo | Where-Object {
+        $_.restrictions | Where-Object { $_.type -eq 'Zone' }
+    }
+    if ($zoneRestricted) {
+        Write-Host "  ⚠️  VM size '$vmSize' has zone restrictions in '$location' (some AZs unavailable)" -ForegroundColor DarkYellow
+    }
+
+    Write-Host "  ✅ VM size '$vmSize' is available in '$location'" -ForegroundColor Green
+}
+else {
+    Write-Host "  ⏭️  Skipping (AZURE_LOCATION not set yet — azd will prompt)" -ForegroundColor DarkYellow
+}
+
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  ✅ All prerequisites satisfied!"          -ForegroundColor Green

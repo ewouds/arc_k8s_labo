@@ -124,9 +124,9 @@ az group delete --name rg-arcworkshop --yes
 
 | Resource      | SKU             | ~Cost/hour        |
 | ------------- | --------------- | ----------------- |
-| VM            | Standard_D2s_v3 | €0.11             |
+| VM            | Standard_D4s_v3 | €0.19             |
 | Public IP     | Standard Static | €0.004            |
 | Log Analytics | PerGB2018       | Pay per ingestion |
-| **Total**     |                 | **~€0.12/hour**   |
+| **Total**     |                 | **~€0.20/hour**   |
 
 > **Tip:** Run `azd down` immediately after the workshop to stop costs.

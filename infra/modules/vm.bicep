@@ -11,7 +11,7 @@ param adminUsername string
 @secure()
 param adminPassword string
 
-param vmSize string = 'Standard_D2s_v3'
+param vmSize string = 'Standard_D4s_v3'
 
 // --- Network Interface ---
 resource nic 'Microsoft.Network/networkInterfaces@2023-11-01' = {

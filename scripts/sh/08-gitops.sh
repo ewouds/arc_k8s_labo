@@ -16,7 +16,7 @@ CLUSTER_NAME="${CLUSTER_NAME:-arc-k3s-cluster}"
 
 # GitOps source repository
 # Using the local gitops/ folder pushed to a Git repo, or the Azure sample repo
-GITOPS_REPO_URL="${GITOPS_REPO_URL:-https://github.com/Azure/arc-k8s-demo}"
+GITOPS_REPO_URL="${GITOPS_REPO_URL:-https://github.com/ewouds/arc_k8s_labo}"
 GITOPS_BRANCH="${GITOPS_BRANCH:-main}"
 
 echo ""
@@ -66,7 +66,7 @@ az k8s-configuration flux create \
   --scope cluster \
   --url "$GITOPS_REPO_URL" \
   --branch "$GITOPS_BRANCH" \
-  --kustomization name=cluster-apps path=./ prune=true
+  --kustomization name=cluster-apps path=./gitops prune=true
 
 # --- 3. Verify the GitOps configuration ---
 echo ""

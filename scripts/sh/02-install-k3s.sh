@@ -43,6 +43,10 @@ sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
 sudo chown $(id -u):$(id -g) ~/.kube/config
 export KUBECONFIG=~/.kube/config
 echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+# Also set in /etc/environment so non-interactive SSH sessions pick it up
+echo 'KUBECONFIG=/home/azureuser/.kube/config' | sudo tee -a /etc/environment > /dev/null
+# Make k3s.yaml readable as fallback
+sudo chmod 644 /etc/rancher/k3s/k3s.yaml
 
 # --- 5. Verify K3s installation ---
 echo ""

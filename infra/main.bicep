@@ -32,8 +32,8 @@ param vmAdminUsername string = 'azureuser'
 @description('Admin password for the K3s VM (min 12 chars, must include uppercase, lowercase, number, special char)')
 param vmAdminPassword string
 
-@description('VM size for the K3s node')
-param vmSize string = 'Standard_D2s_v3'
+@description('VM size for the K3s node (D4s_v3 recommended for Arc + Defender)')
+param vmSize string = 'Standard_D4s_v3'
 
 // ---------------------------------------------------------------------------
 // Variables

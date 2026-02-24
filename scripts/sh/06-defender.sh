@@ -75,17 +75,62 @@ echo "  🔒 Security recommendations:"
 echo "     - RBAC best practices"
 echo "     - Network policy recommendations"
 echo "     - Pod security standards"
+
+# --- 3. Verify Defender pods on the cluster ---
 echo ""
-echo "  📊 View in Azure Portal:"
-echo "     - Security Center > Workload protections"
-echo "     - Arc cluster > Security"
-echo "     - Defender for Cloud > Recommendations"
+echo "🔍 Verifying Defender pods on the cluster..."
+
+VM_IP="${VM_IP:-20.240.42.92}"
+VM_USER="${VM_USER:-azureuser}"
+
+if ssh "${VM_USER}@${VM_IP}" "KUBECONFIG=~/.kube/config kubectl get pods -n mdc --no-headers 2>/dev/null" 2>/dev/null; then
+  echo "  ✅ Defender sensor pods are running"
+else
+  echo "  ⚠️  No Defender pods found yet (namespace 'mdc' may take a few minutes)"
+fi
+
+# --- 4. Trigger a test security alert ---
+echo ""
+echo "🧪 Triggering a test security alert..."
+echo "  Running the official Microsoft Defender test alert container"
+echo ""
+echo "  ⚠️  If governance policies (Section 5) are active, disable them first:"
+echo "     bash scripts/sh/05a-toggle-policies.sh disable"
+echo "     (Re-enable after the test with: bash scripts/sh/05a-toggle-policies.sh enable)"
+echo ""
+
+ssh "${VM_USER}@${VM_IP}" "KUBECONFIG=~/.kube/config kubectl delete pod defender-test --ignore-not-found 2>/dev/null; KUBECONFIG=~/.kube/config kubectl run defender-test --image=mcr.microsoft.com/aks/security/test-alert --restart=Never --labels=environment=workshop 2>/dev/null"
+if [ $? -eq 0 ]; then
+  echo "  ✅ Test alert triggered — will appear in Defender for Cloud within ~30 min"
+else
+  echo "  ⚠️  Could not trigger test alert (check SSH connectivity)"
+fi
+
+# --- 5. Portal walkthrough ---
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  📊 Portal Demo Walkthrough:"
+echo ""
+echo "  1. Defender for Cloud > Workload protections > Containers"
+echo "     → Your Arc cluster is listed with Defender coverage"
+echo ""
+echo "  2. Defender for Cloud > Security alerts"
+echo "     → Test alert appears here (~30 min delay)"
+echo ""
+echo "  3. Defender for Cloud > Recommendations"
+echo "     → Filter by connectedClusters for hardening tips"
+echo ""
+echo "  4. Arc cluster > Security (blade)"
+echo "     → Defender status directly on the Arc resource"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# --- 6. Cleanup & re-enable policies ---
+echo ""
+echo "🧹 Cleanup (run after demo):"
+echo "  ssh ${VM_USER}@${VM_IP} \"kubectl delete pod defender-test --ignore-not-found\""
+echo "  bash scripts/sh/05a-toggle-policies.sh enable"
 
 echo ""
 echo "============================================"
 echo "  ✅ Microsoft Defender configured!"
-echo ""
-echo "  🎯 Demo: Show Defender recommendations in Portal"
-echo "     Portal > Defender for Cloud > Recommendations"
-echo "     Filter by: Resource type = connectedClusters"
 echo "============================================"

@@ -80,6 +80,61 @@ for EXT in "${EXTENSIONS[@]}"; do
   fi
 done
 
+# --- 5. Check VM SKU capacity in selected region ---
+echo ""
+echo "🔍 Checking VM SKU availability..."
+
+VM_SIZE="${VM_SIZE:-Standard_D4s_v3}"
+LOCATION="${AZURE_LOCATION:-}"
+
+if [ -n "$LOCATION" ]; then
+  SKU_JSON=$(az vm list-skus --location "$LOCATION" --size "$VM_SIZE" --resource-type virtualMachines -o json 2>/dev/null)
+  SKU_COUNT=$(echo "$SKU_JSON" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+
+  if [ "$SKU_COUNT" -eq 0 ]; then
+    echo "  ❌ VM size '$VM_SIZE' is not available in region '$LOCATION'."
+    echo "     Choose a different region or set VM_SIZE to an available SKU."
+    echo "     Check available sizes: az vm list-skus --location $LOCATION --resource-type virtualMachines --query \"[?name=='$VM_SIZE']\" -o table"
+    exit 1
+  fi
+
+  LOC_RESTRICTED=$(echo "$SKU_JSON" | python3 -c "
+import sys, json
+skus = json.load(sys.stdin)
+for s in skus:
+    for r in s.get('restrictions', []):
+        if r.get('type') == 'Location':
+            print(r.get('reasonCode', 'Unknown'))
+            sys.exit(0)
+" 2>/dev/null || echo "")
+
+  if [ -n "$LOC_RESTRICTED" ]; then
+    echo "  ❌ VM size '$VM_SIZE' is restricted in region '$LOCATION'."
+    echo "     Reason: $LOC_RESTRICTED"
+    echo "     Choose a different region or set VM_SIZE to an available SKU."
+    exit 1
+  fi
+
+  # Check for zone restrictions (warning only)
+  ZONE_RESTRICTED=$(echo "$SKU_JSON" | python3 -c "
+import sys, json
+skus = json.load(sys.stdin)
+for s in skus:
+    for r in s.get('restrictions', []):
+        if r.get('type') == 'Zone':
+            print('yes')
+            sys.exit(0)
+" 2>/dev/null || echo "")
+
+  if [ -n "$ZONE_RESTRICTED" ]; then
+    echo "  ⚠️  VM size '$VM_SIZE' has zone restrictions in '$LOCATION' (some AZs unavailable)"
+  fi
+
+  echo "  ✅ VM size '$VM_SIZE' is available in '$LOCATION'"
+else
+  echo "  ⏭️  Skipping (AZURE_LOCATION not set yet — azd will prompt)"
+fi
+
 echo ""
 echo "============================================"
 echo "  ✅ All prerequisites satisfied!"

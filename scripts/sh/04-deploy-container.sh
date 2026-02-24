@@ -33,22 +33,31 @@ echo "  Cluster Connect — deploying via Azure Arc proxy"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 echo ""
-echo "🔌 Starting Cluster Connect proxy..."
-az connectedk8s proxy -n "$CLUSTER_NAME" -g "$RESOURCE_GROUP" &
-PROXY_PID=$!
+echo "🔌 Checking Cluster Connect..."
 
-# Cleanup proxy on exit
-trap "kill $PROXY_PID 2>/dev/null || true" EXIT
+# Check if a proxy is already running and kubectl works
+PROXY_PID=""
+if kubectl get nodes &>/dev/null; then
+  echo "  ✅ Existing proxy detected — reusing connection"
+else
+  echo "  Starting Cluster Connect proxy..."
+  az connectedk8s proxy -n "$CLUSTER_NAME" -g "$RESOURCE_GROUP" &
+  PROXY_PID=$!
 
-# Give the proxy time to establish the tunnel
-echo "   Waiting for proxy tunnel to establish..."
-sleep 10
+  # Give the proxy time to establish the tunnel
+  echo "   Waiting for proxy tunnel to establish..."
+  sleep 15
 
-# Verify the tunnel is working
-if ! kubectl get nodes &>/dev/null; then
-  echo "❌ Cluster Connect proxy failed. Ensure the cluster is Arc-connected and try again."
-  exit 1
+  # Verify the tunnel is working
+  if ! kubectl get nodes &>/dev/null; then
+    echo "❌ Cluster Connect proxy failed. Ensure the cluster is Arc-connected and try again."
+    [ -n "$PROXY_PID" ] && kill "$PROXY_PID" 2>/dev/null || true
+    exit 1
+  fi
 fi
+
+# Cleanup proxy on exit (only if we started one)
+trap '[ -n "$PROXY_PID" ] && kill "$PROXY_PID" 2>/dev/null || true' EXIT
 
 echo "✅ Cluster Connect active — kubectl is working via Azure Arc"
 echo ""

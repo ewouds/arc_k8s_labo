@@ -11,7 +11,7 @@ Write-Host "============================================" -ForegroundColor Cyan
 # --- Configuration ---
 $resourceGroup = if ($env:RESOURCE_GROUP) { $env:RESOURCE_GROUP } else { "rg-arcworkshop" }
 $clusterName   = if ($env:CLUSTER_NAME)   { $env:CLUSTER_NAME }   else { "arc-k3s-cluster" }
-$gitopsRepoUrl = "https://github.com/Azure/arc-k8s-demo"
+$gitopsRepoUrl = "https://github.com/ewouds/arc_k8s_labo"
 $gitopsBranch  = "main"
 
 Write-Host ""
@@ -54,7 +54,7 @@ az k8s-configuration flux create `
   --scope cluster `
   --url $gitopsRepoUrl `
   --branch $gitopsBranch `
-  --kustomization name=cluster-config path=./releases/prod prune=true 2>$null
+  --kustomization name=cluster-config path=./gitops prune=true 2>$null
 
 # --- 3. Show status ---
 Write-Host ""

@@ -55,7 +55,7 @@ CLUSTER_ID=$(az connectedk8s show \
 # Policy 1: Kubernetes clusters should not allow privileged containers
 echo ""
 echo "  📌 Policy: Do not allow privileged containers"
-POLICY_DEF_1="95edb821-ddaf-4404-9ab7-b7b2c97b44e7"
+POLICY_DEF_1="95edb821-ddaf-4404-9732-666045e056b4"
 az policy assignment create \
   --name "no-privileged-containers" \
   --display-name "[Arc Workshop] Do not allow privileged containers" \
@@ -67,7 +67,7 @@ az policy assignment create \
 # Policy 2: Kubernetes clusters should use internal load balancers
 echo ""
 echo "  📌 Policy: Enforce resource labels (require 'environment' label)"
-POLICY_DEF_2="677528de-5c0a-48af-b786-ec2f1ae0f342"
+POLICY_DEF_2="46592696-4c7b-4bf3-9e45-6c2763bdc0a6"
 az policy assignment create \
   --name "require-env-label" \
   --display-name "[Arc Workshop] Pods must have 'environment' label" \

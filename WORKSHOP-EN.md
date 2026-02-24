@@ -565,7 +565,7 @@ CLUSTER_ID=$(az connectedk8s show \
 az policy assignment create \
   --name "no-privileged-containers" \
   --display-name "[Arc Workshop] No privileged containers" \
-  --policy "95edb821-ddaf-4404-9ab7-b7b2c97b44e7" \
+  --policy "95edb821-ddaf-4404-9732-666045e056b4" \
   --scope "$CLUSTER_ID" \
   --params '{"effect": {"value": "Deny"}}'
 
@@ -578,6 +578,22 @@ ssh azureuser@<VM_IP> "kubectl apply -f ~/privileged-pod.yaml"
 #    Arc cluster > Policies
 #    Azure Policy > Compliance (filter by resource group)
 ```
+
+> **⚠️ Important:** Policies need **15-30 minutes** to sync to the cluster via Gatekeeper.
+> The privileged pod test (step 5) will only fail **after** Gatekeeper has synced the constraints.
+>
+> **How to check if policies are ready:**
+> ```bash
+> # Check if Gatekeeper constraints exist (empty = not yet synced)
+> kubectl get constraints
+> kubectl get constrainttemplates
+>
+> # Check Gatekeeper pods are running
+> kubectl get pods -n gatekeeper-system
+> ```
+>
+> If `kubectl get constraints` returns results, the policies are active and the privileged pod will be denied.
+> While waiting, you can continue with the next sections and come back to test later.
 
 **Point out:**
 
@@ -623,12 +639,36 @@ az k8s-extension create \
   --extension-type microsoft.azuredefender.kubernetes \
   --configuration-settings "logAnalyticsWorkspaceResourceID=<WORKSPACE_ID>"
 
-# 3. PORTAL DEMO:
+# 3. Verify Defender pods are running
+ssh azureuser@<VM_IP> "kubectl get pods -n mdc"
+
+# 4. Disable governance policies (if Section 5 was completed)
+#    The test alert image may be blocked by the allowed-registries policy
+#    and the require-labels policy. Disable them temporarily:
+.\scripts\ps1\05a-toggle-policies.ps1 disable   # PowerShell
+# OR: bash scripts/sh/05a-toggle-policies.sh disable   # Bash
+
+# 5. Trigger a test security alert
+ssh azureuser@<VM_IP> "kubectl run defender-test \
+  --image=mcr.microsoft.com/aks/security/test-alert \
+  --restart=Never \
+  --labels=environment=workshop"
+
+# 6. PORTAL DEMO:
 #    - Defender for Cloud > Workload protections > Containers
-#    - Security recommendations for the Arc cluster
-#    - Security alerts (if any)
+#    - Defender for Cloud > Security alerts (test alert ~30 min)
+#    - Defender for Cloud > Recommendations (filter: connectedClusters)
+#    - Arc cluster > Security blade
 #    - Secure score impact
+
+# 7. Cleanup test pod & re-enable policies
+ssh azureuser@<VM_IP> "kubectl delete pod defender-test --ignore-not-found"
+.\scripts\ps1\05a-toggle-policies.ps1 enable   # PowerShell
+# OR: bash scripts/sh/05a-toggle-policies.sh enable   # Bash
 ```
+
+> **Note:** The test alert takes approximately **30 minutes** to appear in the Security Alerts blade.
+> For a live demo, trigger the test alert beforehand so it's already visible when you present this section.
 
 **Key message:** _"Enterprise-grade security for any K8s cluster, managed from Defender for Cloud. Same protection as AKS, regardless of location."_
 
@@ -753,9 +793,9 @@ az k8s-configuration flux create \
   --cluster-type connectedClusters \
   --namespace gitops-demo \
   --scope cluster \
-  --url https://github.com/Azure/arc-k8s-demo \
+  --url https://github.com/ewouds/arc_k8s_labo \
   --branch main \
-  --kustomization name=cluster-config path=./releases/prod prune=true
+  --kustomization name=cluster-config path=./gitops prune=true
 
 # 3. Check sync status
 az k8s-configuration flux show \

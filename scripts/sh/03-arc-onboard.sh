@@ -87,6 +87,28 @@ echo ""
 echo "--- Arc Agent Deployments ---"
 kubectl get deployments -n azure-arc
 
+# --- 7. Enable Cluster Connect feature ---
+echo ""
+echo "🔌 Enabling Cluster Connect feature..."
+echo "  This allows kubectl access via Azure Arc (no VPN/SSH needed)"
+az connectedk8s enable-features \
+  --name "$CLUSTER_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
+  --features cluster-connect
+
+echo "  ✅ Cluster Connect enabled"
+
+# --- 8. Grant signed-in user cluster-admin for Cluster Connect RBAC ---
+echo ""
+echo "🔐 Configuring Kubernetes RBAC for Cluster Connect..."
+AZURE_USER=$(az ad signed-in-user show --query userPrincipalName -o tsv)
+echo "  Granting cluster-admin to: $AZURE_USER"
+kubectl create clusterrolebinding arc-admin-binding \
+  --clusterrole=cluster-admin \
+  --user="$AZURE_USER" 2>/dev/null \
+  || echo "  (binding already exists)"
+echo "  ✅ RBAC configured"
+
 echo ""
 echo "============================================"
 echo "  ✅ Cluster successfully connected to Azure Arc!"

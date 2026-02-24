@@ -18,7 +18,7 @@ spec:
         environment: workshop
     spec:
       containers:
-        - name: httpd
+        - name: hello-arc
           image: httpd:2.4-alpine
           ports:
             - containerPort: 80
