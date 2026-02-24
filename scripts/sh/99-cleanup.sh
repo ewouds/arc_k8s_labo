@@ -66,6 +66,13 @@ echo "🗑️ Deleting resource group $RESOURCE_GROUP..."
 echo "  This may take a few minutes..."
 az group delete --name "$RESOURCE_GROUP" --yes --no-wait
 
+# --- 5a. Delete optional AKS resource group (if created via 09a) ---
+if [ "$(az group exists --name rg-arcworkshop-aks 2>/dev/null)" = "true" ]; then
+  echo ""
+  echo "🗑️ Deleting optional AKS resource group (rg-arcworkshop-aks)..."
+  az group delete --name "rg-arcworkshop-aks" --yes --no-wait
+fi
+
 # --- 6. Or use AZD to clean up ---
 echo ""
 echo "  Alternatively, you can run:"

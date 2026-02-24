@@ -10,9 +10,9 @@ Write-Host "============================================" -ForegroundColor Cyan
 
 # --- Configuration ---
 $resourceGroup = if ($env:RESOURCE_GROUP) { $env:RESOURCE_GROUP } else { "rg-arcworkshop" }
-$clusterName   = if ($env:CLUSTER_NAME)   { $env:CLUSTER_NAME }   else { "arc-k3s-cluster" }
+$clusterName = if ($env:CLUSTER_NAME) { $env:CLUSTER_NAME }   else { "arc-k3s-cluster" }
 $gitopsRepoUrl = "https://github.com/ewouds/arc_k8s_labo"
-$gitopsBranch  = "main"
+$gitopsBranch = "master"
 
 Write-Host ""
 Write-Host "📋 Configuration:" -ForegroundColor Yellow

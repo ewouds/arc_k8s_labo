@@ -17,7 +17,7 @@ CLUSTER_NAME="${CLUSTER_NAME:-arc-k3s-cluster}"
 # GitOps source repository
 # Using the local gitops/ folder pushed to a Git repo, or the Azure sample repo
 GITOPS_REPO_URL="${GITOPS_REPO_URL:-https://github.com/ewouds/arc_k8s_labo}"
-GITOPS_BRANCH="${GITOPS_BRANCH:-main}"
+GITOPS_BRANCH="${GITOPS_BRANCH:-master}"
 
 echo ""
 echo "📋 Configuration:"

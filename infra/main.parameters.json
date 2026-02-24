@@ -15,7 +15,7 @@
       "value": "${VM_ADMIN_PASSWORD}"
     },
     "vmSize": {
-      "value": "${VM_SIZE=Standard_D4s_v3}"
+      "value": "${VM_SIZE=Standard_D2s_v3}"
     }
   }
 }

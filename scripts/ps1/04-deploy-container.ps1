@@ -6,7 +6,7 @@
 # cluster — showcasing Arc's flexibility:
 #   1. CLI via Cluster Connect (az connectedk8s proxy + kubectl)
 #   2. Azure Portal (paste YAML in the portal UI)
-#   3. Microsoft Copilot in Azure (AI-assisted — bonus!)
+#   3. GitHub Copilot (AI-generated YAML — bonus!)
 #
 # No VPN, no SSH, no direct network access needed — that's the power of Arc.
 # ============================================================================
@@ -50,7 +50,8 @@ $null = kubectl get nodes 2>&1
 if ($LASTEXITCODE -eq 0) {
     $proxyAlreadyRunning = $true
     Write-Host "  ✅ Existing proxy detected — reusing connection" -ForegroundColor Green
-} else {
+}
+else {
     Write-Host "  Starting Cluster Connect proxy..." -ForegroundColor Yellow
     $proxyJob = Start-Job -ScriptBlock {
         az connectedk8s proxy -n $using:clusterName -g $using:resourceGroup 2>&1
@@ -136,41 +137,41 @@ Write-Host "  - hello-arc   (deployed via Azure Portal)"                        
 Write-Host "============================================"                                -ForegroundColor Cyan
 
 # ============================================================================
-# Step 3 (BONUS): Deploy a 3rd container using Microsoft Copilot in Azure
-#   Show attendees how Copilot in Azure can help deploy workloads
-#   directly from the Azure Portal — AI-assisted operations.
+# Step 3 (BONUS): Deploy a 3rd container using GitHub Copilot
+#   Show attendees how GitHub Copilot can generate Kubernetes manifests
+#   and deploy them — AI-assisted operations on Arc-connected clusters.
 # ============================================================================
 Write-Host ""
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-Write-Host "  🎁 BONUS: Deploy 3rd container via Microsoft Copilot in Azure" -ForegroundColor White
+Write-Host "  🎁 BONUS: Deploy 3rd container via GitHub Copilot" -ForegroundColor White
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "🤖 Use Microsoft Copilot in Azure to deploy a Kubernetes workload!" -ForegroundColor Yellow
+Write-Host "🤖 Use GitHub Copilot to generate AND deploy a Kubernetes workload!" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "   How to do it:" -ForegroundColor White
 Write-Host "   ─────────────" -ForegroundColor DarkGray
-Write-Host "   1. In the Azure Portal, go to:" -ForegroundColor White
-Write-Host "      Arc cluster ($clusterName) > Kubernetes resources > Workloads" -ForegroundColor White
-Write-Host "   2. Click '+ Create' (top left) > 'Ask Copilot'" -ForegroundColor White
-Write-Host "   3. Type a prompt like:" -ForegroundColor White
+Write-Host "   1. Open GitHub Copilot Chat in VS Code (Ctrl+Shift+I)" -ForegroundColor White
+Write-Host "   2. Type a prompt like one of these:" -ForegroundColor White
 Write-Host ""
-Write-Host '      "Deploy an nginx:alpine container called copilot-demo' -ForegroundColor DarkCyan
-Write-Host '       in the demo namespace with 1 replica"' -ForegroundColor DarkCyan
+Write-Host '      "Create a Kubernetes deployment YAML for a container called' -ForegroundColor DarkCyan
+Write-Host '       copilot-demo in the demo namespace, using the nginx:alpine' -ForegroundColor DarkCyan
+Write-Host '       image with 1 replica. Include resource limits and a service.' -ForegroundColor DarkCyan
+Write-Host '       Save it at k8s/copilot-demo.yaml"' -ForegroundColor DarkCyan
 Write-Host ""
-Write-Host "   4. Copilot will generate the YAML for you" -ForegroundColor White
-Write-Host "   5. Review and confirm the deployment" -ForegroundColor White
+Write-Host "   3. Review the generated YAML — Copilot creates it for you!" -ForegroundColor White
+Write-Host "   4. Apply it with:" -ForegroundColor White
+Write-Host '      kubectl apply -f k8s/copilot-demo.yaml' -ForegroundColor Green
 Write-Host ""
-Write-Host "   💡 Other prompts you can try:" -ForegroundColor Magenta
-Write-Host '      "Show me the workloads on my Arc cluster arc-k3s-cluster"' -ForegroundColor DarkCyan
-Write-Host '      "How do I deploy a container to my Arc-connected cluster?"' -ForegroundColor DarkCyan
-Write-Host '      "Create a Kubernetes deployment YAML for nginx:alpine"' -ForegroundColor DarkCyan
+Write-Host "   💡 Tip: You can also ask Copilot directly:" -ForegroundColor Magenta
+Write-Host '      @terminal kubectl apply the copilot-demo.yaml' -ForegroundColor DarkCyan
+Write-Host '      or ask: "Deploy this YAML to my cluster"' -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "   Why this matters:" -ForegroundColor White
-Write-Host "   • Natural language — no need to memorize commands or YAML" -ForegroundColor DarkGray
-Write-Host "   • Copilot is context-aware (knows your subscriptions & clusters)" -ForegroundColor DarkGray
-Write-Host "   • Works directly in the Azure Portal — no extra tools needed" -ForegroundColor DarkGray
+Write-Host "   • No need to memorize YAML syntax" -ForegroundColor DarkGray
+Write-Host "   • Copilot follows best practices (resource limits, labels, probes)" -ForegroundColor DarkGray
+Write-Host "   • Works seamlessly with Arc Cluster Connect — same kubectl" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "⏸️  Use Copilot in Azure to deploy a container, then press Enter to verify..." -ForegroundColor Magenta
+Write-Host "⏸️  Use Copilot to generate & deploy a container, then press Enter to verify..." -ForegroundColor Magenta
 Read-Host
 
 # Verify all deployments
@@ -190,6 +191,6 @@ Write-Host "============================================"                       
 Write-Host "  ✅ Three ways to deploy on Arc-connected clusters!"                        -ForegroundColor Green
 Write-Host "  1. CLI         — kubectl via Cluster Connect (nginx-demo)"                 -ForegroundColor Green
 Write-Host "  2. Portal      — YAML via Azure Portal UI (hello-arc)"                     -ForegroundColor Green
-Write-Host "  3. Copilot     — AI-assisted deploy via Microsoft Copilot in Azure"       -ForegroundColor Green
+Write-Host "  3. Copilot     — AI-generated YAML via GitHub Copilot (copilot-demo)"      -ForegroundColor Green
 Write-Host "  View in Portal: Arc cluster > Kubernetes resources > Workloads"             -ForegroundColor Cyan
 Write-Host "============================================"                                -ForegroundColor Cyan

@@ -65,6 +65,14 @@ Write-Host ""
 Write-Host "🗑️ Deleting resource group $resourceGroup..." -ForegroundColor Yellow
 az group delete --name $resourceGroup --yes --no-wait
 
+# --- 6. Delete optional AKS resource group (if created via 09a) ---
+$aksRgExists = az group exists --name "rg-arcworkshop-aks" 2>$null
+if ($aksRgExists -eq "true") {
+  Write-Host ""
+  Write-Host "🗑️ Deleting optional AKS resource group (rg-arcworkshop-aks)..." -ForegroundColor Yellow
+  az group delete --name "rg-arcworkshop-aks" --yes --no-wait
+}
+
 Write-Host ""
 Write-Host "  Or use: azd down --purge --force" -ForegroundColor DarkYellow
 

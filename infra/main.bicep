@@ -6,6 +6,7 @@
 //   2. Virtual Network + NSG + Public IP  (simulates "on-prem" network)
 //   3. Ubuntu VM                          (will run K3s / Rancher)
 //   4. Log Analytics Workspace            (for monitoring & Defender)
+//   5. (Optional) AKS cluster             (for inventory comparison)
 //
 // Usage:  azd provision   (or azd up)
 // ============================================================================
@@ -34,6 +35,9 @@ param vmAdminPassword string
 
 @description('VM size for the K3s node (D4s_v3 recommended for Arc + Defender)')
 param vmSize string = 'Standard_D4s_v3'
+
+@description('Deploy an optional AKS cluster for inventory comparison (Exercise 9)')
+param deployAks bool = true
 
 // ---------------------------------------------------------------------------
 // Variables
@@ -94,6 +98,17 @@ module logAnalytics 'modules/loganalytics.bicep' = {
   }
 }
 
+// 4. (Optional) AKS cluster for inventory comparison
+module aks 'modules/aks.bicep' = if (deployAks) {
+  scope: rg
+  name: 'aks-deployment'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Outputs - Used by scripts and displayed after `azd provision`
 // ---------------------------------------------------------------------------
@@ -106,3 +121,5 @@ output VM_NAME string = vm.outputs.vmName
 output LOG_ANALYTICS_WORKSPACE_ID string = logAnalytics.outputs.workspaceId
 output LOG_ANALYTICS_WORKSPACE_NAME string = logAnalytics.outputs.workspaceName
 output SSH_COMMAND string = 'ssh ${vmAdminUsername}@${network.outputs.publicIpAddress}'
+output DEPLOY_AKS bool = deployAks
+output AKS_CLUSTER_NAME string = deployAks ? aks.outputs.aksClusterName : ''

@@ -30,7 +30,6 @@ azd env get-values
 arc_k8s/
 ├── azure.yaml                    # AZD project configuration
 ├── WORKSHOP-EN.md                # 📋 Workshop guide (English)
-├── WORKSHOP-NL.md                # 📋 Workshop guide (Nederlands)
 ├── README.md                     # This file
 │
 ├── infra/                        # Bicep infrastructure-as-code
@@ -39,7 +38,8 @@ arc_k8s/
 │   └── modules/
 │       ├── network.bicep         # VNet, Subnet, NSG, Public IP
 │       ├── vm.bicep              # Ubuntu 22.04 VM (K3s host)
-│       └── loganalytics.bicep    # Log Analytics Workspace
+│       ├── loganalytics.bicep    # Log Analytics Workspace
+│       └── aks.bicep             # (Optional) AKS cluster for inventory comparison
 │
 ├── scripts/                      # Demo scripts (numbered by workshop step)
 │   ├── sh/                       # Bash/Shell scripts (Linux / WSL / Git Bash)
@@ -48,10 +48,12 @@ arc_k8s/
 │   │   ├── 03-arc-onboard.sh
 │   │   ├── 04-deploy-container.sh
 │   │   ├── 05-governance.sh
+│   │   ├── 05a-toggle-policies.sh   # Toggle policies on/off
 │   │   ├── 06-defender.sh
 │   │   ├── 07-monitoring.sh
 │   │   ├── 08-gitops.sh
 │   │   ├── 09-inventory.sh
+│   │   ├── postprovision.sh          # Post-provision hook (AKS workload)
 │   │   └── 99-cleanup.sh
 │   └── ps1/                      # PowerShell scripts (Windows native)
 │       ├── 00-prereqs.ps1
@@ -59,10 +61,12 @@ arc_k8s/
 │       ├── 03-arc-onboard.ps1
 │       ├── 04-deploy-container.ps1
 │       ├── 05-governance.ps1
+│       ├── 05a-toggle-policies.ps1 # Toggle policies on/off
 │       ├── 06-defender.ps1
 │       ├── 07-monitoring.ps1
 │       ├── 08-gitops.ps1
 │       ├── 09-inventory.ps1
+│       ├── postprovision.ps1      # Post-provision hook (AKS workload)
 │       └── 99-cleanup.ps1
 │
 ├── k8s/                          # Kubernetes manifests for demos
@@ -93,7 +97,6 @@ arc_k8s/
 See the workshop guide in your preferred language:
 
 - **English:** [WORKSHOP-EN.md](WORKSHOP-EN.md)
-- **Nederlands:** [WORKSHOP-NL.md](WORKSHOP-NL.md)
 
 | Step | Duration | What                            |
 | ---- | -------- | ------------------------------- |
@@ -128,5 +131,7 @@ az group delete --name rg-arcworkshop --yes
 | Public IP     | Standard Static | €0.004            |
 | Log Analytics | PerGB2018       | Pay per ingestion |
 | **Total**     |                 | **~€0.20/hour**   |
+
+> **Optional:** Set `deployAks=true` during `azd up` to include a small AKS cluster (Standard_B2s, ~€0.10/hour extra) for the inventory comparison demo in Exercise 9.
 
 > **Tip:** Run `azd down` immediately after the workshop to stop costs.
