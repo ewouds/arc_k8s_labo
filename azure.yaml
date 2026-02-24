@@ -12,7 +12,13 @@ infra:
 # Hooks for pre/post provisioning
 hooks:
   preprovision:
-    shell: sh
-    run: scripts/sh/00-prereqs.sh
-    interactive: true
-    continueOnError: false
+    posix:
+      shell: sh
+      run: scripts/sh/00-prereqs.sh
+      interactive: true
+      continueOnError: false
+    windows:
+      shell: pwsh
+      run: scripts/ps1/00-prereqs.ps1
+      interactive: true
+      continueOnError: false

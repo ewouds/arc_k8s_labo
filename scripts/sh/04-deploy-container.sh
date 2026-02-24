@@ -1,8 +1,11 @@
 #!/bin/bash
 # ============================================================================
-# Script 04 - Deploy Container from Azure to Arc-connected Cluster
+# Script 04 - Deploy Container via Azure Arc Cluster Connect
 # Run this from your LOCAL machine (not the VM)
-# Demonstrates deploying workloads to Arc-connected clusters from Azure
+#
+# This script demonstrates deploying a workload to an Arc-connected cluster
+# using Cluster Connect (az connectedk8s proxy).
+# No VPN, no SSH, no direct network access needed — that's the power of Arc.
 # ============================================================================
 set -e
 
@@ -13,54 +16,44 @@ echo "============================================"
 # --- Configuration ---
 RESOURCE_GROUP="${RESOURCE_GROUP:-rg-arcworkshop}"
 CLUSTER_NAME="${CLUSTER_NAME:-arc-k3s-cluster}"
-VM_IP="${VM_IP:-$(azd env get-values 2>/dev/null | grep VM_PUBLIC_IP | cut -d'=' -f2 | tr -d '"')}"
 
 echo ""
 echo "📋 Configuration:"
 echo "  Resource Group: $RESOURCE_GROUP"
 echo "  Cluster Name:   $CLUSTER_NAME"
-echo "  VM IP:          $VM_IP"
 
 # ============================================================================
-# METHOD 1: Using cluster connect (az connectedk8s proxy)
-# This creates a secure tunnel from your local machine to the Arc cluster
+# Cluster Connect (az connectedk8s proxy)
+#   Opens a tunnel via Azure Arc to the cluster — no direct network access
+#   needed. All traffic flows through Azure as a reverse proxy.
 # ============================================================================
-
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Method 1: Cluster Connect (az connectedk8s proxy)"
+echo "  Cluster Connect — deploying via Azure Arc proxy"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-echo "  This feature lets you access the K8s API from your local"
-echo "  machine through Azure, without needing direct network access."
-echo ""
-echo "  Step 1: Start the proxy (run in a separate terminal):"
-echo "    az connectedk8s proxy -n $CLUSTER_NAME -g $RESOURCE_GROUP &"
-echo ""
-echo "  Step 2: Use kubectl as if the cluster were local:"
-echo "    kubectl get nodes"
-echo "    kubectl apply -f k8s/demo-app.yaml"
-echo ""
 
-# ============================================================================
-# METHOD 2: Direct deployment via SSH + kubectl
-# ============================================================================
-
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Method 2: Deploy via SSH + kubectl"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "  Copying manifest and applying on the remote cluster..."
+echo "🔌 Starting Cluster Connect proxy..."
+az connectedk8s proxy -n "$CLUSTER_NAME" -g "$RESOURCE_GROUP" &
+PROXY_PID=$!
 
-# Copy the manifest to the VM
-scp -o StrictHostKeyChecking=no k8s/demo-app.yaml azureuser@${VM_IP}:~/demo-app.yaml
+# Cleanup proxy on exit
+trap "kill $PROXY_PID 2>/dev/null || true" EXIT
 
-# Apply the manifest on the VM
-ssh -o StrictHostKeyChecking=no azureuser@${VM_IP} << 'REMOTE_COMMANDS'
+# Give the proxy time to establish the tunnel
+echo "   Waiting for proxy tunnel to establish..."
+sleep 10
+
+# Verify the tunnel is working
+if ! kubectl get nodes &>/dev/null; then
+  echo "❌ Cluster Connect proxy failed. Ensure the cluster is Arc-connected and try again."
+  exit 1
+fi
+
+echo "✅ Cluster Connect active — kubectl is working via Azure Arc"
 echo ""
-echo "📦 Creating demo namespace and deploying application..."
-export KUBECONFIG=~/.kube/config
-kubectl apply -f ~/demo-app.yaml
+echo "🚀 Deploying application..."
+kubectl apply -f k8s/demo-app.yaml
 
 echo ""
 echo "⏳ Waiting for pods to be ready..."
@@ -69,15 +62,47 @@ kubectl wait --for=condition=ready pod -l app=nginx-demo -n demo --timeout=120s
 echo ""
 echo "--- Demo Application Status ---"
 kubectl get all -n demo
-REMOTE_COMMANDS
 
 echo ""
 echo "============================================"
-echo "  ✅ Application deployed to Arc-connected cluster!"
+echo "  ✅ Application 1 (nginx-demo) deployed via Cluster Connect!"
+echo "  No SSH, no VPN — just Azure Arc."
+echo "============================================"
+
+# ============================================================================
+# Step 2: Deploy second container via Azure Portal (manual)
+#   Demonstrate that you can deploy workloads directly from the Azure Portal
+#   by pasting YAML — no CLI required.
+# ============================================================================
 echo ""
-echo "  View workloads in Azure Portal:"
-echo "  Arc cluster > Kubernetes resources > Workloads"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  Deploy 2nd container via Azure Portal"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "  The deployment is visible from Azure even though"
-echo "  the cluster runs 'on-premises' (on our VM)."
+echo "🌐 Now open the Azure Portal and deploy a second container manually:"
+echo "   1. Go to: Arc cluster ($CLUSTER_NAME) > Kubernetes resources > Workloads"
+echo "   2. Click '+ Create' > 'Apply with YAML'"
+echo "   3. Paste the contents of: k8s/hello-arc.yaml"
+echo "   4. Click 'Add' and wait for the pod to be Running"
+echo ""
+echo "📄 YAML to paste (also available at k8s/hello-arc.yaml):"
+echo "─────────────────────────────────────────────"
+cat k8s/hello-arc.yaml
+echo "─────────────────────────────────────────────"
+
+echo ""
+echo "⏸️  Deploy the YAML above via the Azure Portal, then press Enter to verify..."
+read -r
+
+# Verify both deployments
+echo "🔍 Verifying both deployments..."
+kubectl get deployments -n demo
+kubectl get pods -n demo
+
+echo ""
+echo "============================================"
+echo "  ✅ Two containers running on-prem via Azure Arc!"
+echo "  - nginx-demo  (deployed via CLI / Cluster Connect)"
+echo "  - hello-arc   (deployed via Azure Portal)"
+echo "  View in Portal: Arc cluster > Kubernetes resources > Workloads"
 echo "============================================"

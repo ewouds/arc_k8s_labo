@@ -33,7 +33,8 @@ Write-Host "    3. Configure kubectl"
 Write-Host ""
 
 # SSH into VM and run install
-ssh -o StrictHostKeyChecking=no "${vmUser}@${vmIp}" @"
+$sshTarget = "${vmUser}@${vmIp}"
+$sshCommand = @'
 set -e
 echo '📦 Updating system packages...'
 sudo apt-get update -y && sudo apt-get upgrade -y
@@ -47,7 +48,7 @@ sleep 10
 echo '🔧 Configuring kubectl...'
 mkdir -p ~/.kube
 sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-sudo chown \$(id -u):\$(id -g) ~/.kube/config
+sudo chown $(id -u):$(id -g) ~/.kube/config
 export KUBECONFIG=~/.kube/config
 echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
 
@@ -63,7 +64,12 @@ k3s --version
 
 echo ''
 echo '✅ K3s installed and running!'
-"@
+'@
+
+# Strip Windows carriage returns to avoid \r errors on Linux
+$sshCommand = $sshCommand -replace "`r", ""
+
+ssh -o StrictHostKeyChecking=no $sshTarget $sshCommand
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan

@@ -5,6 +5,24 @@
 > **Prerequisites:** Azure subscription (Owner/Contributor), Azure CLI + AZD CLI installed  
 > **Repository:** This folder is a fully self-contained AZD project
 
+> [!WARNING] **Security Disclaimer — Lab Use Only**  
+> This workshop is designed for **learning and demonstration purposes**. Several practices used in this lab do **not** follow security best practices for production environments. Examples include:
+>
+> - Direct SSH access with password authentication (use SSH keys, Azure Bastion, or Just-in-Time VM access instead)
+> - Opening ports (22, 443, 6443) directly on the public internet via NSG rules
+> - Using `--use-device-code` login on a remote VM
+> - Password-based VM authentication instead of Managed Identity / SSH keys
+> - Broad Contributor/Owner role assignments
+>
+> **In production, always apply the principle of least privilege, use private endpoints, enable network segmentation, and follow the Azure security baseline.**
+>
+> Recommended reading:
+>
+> - [Azure Security Best Practices](https://learn.microsoft.com/azure/security/fundamentals/best-practices-and-patterns)
+> - [Azure Arc-enabled Kubernetes Security](https://learn.microsoft.com/azure/azure-arc/kubernetes/security-overview)
+> - [AKS/K8s Security Baseline](https://learn.microsoft.com/security/benchmark/azure/baselines/azure-kubernetes-service-aks-security-baseline)
+> - [Azure Bastion (secure VM access)](https://learn.microsoft.com/azure/bastion/bastion-overview)
+
 ---
 
 ## Architecture Overview
@@ -60,7 +78,7 @@
 
 | #   | Section                                    | Duration    | Type              |
 | --- | ------------------------------------------ | ----------- | ----------------- |
-| 0   | **Introductie & Architectuur**             | 5 min       | Slides/Whiteboard |
+| 0   | **Introduction & Architecture**            | 5 min       | Slides/Whiteboard |
 | 1   | **Deploy Infrastructure (AZD + Bicep)**    | 10 min      | Live demo         |
 | 2   | **SSH & Install K3s (Rancher)**            | 10 min      | Live demo         |
 | 3   | **Arc Onboarding**                         | 10 min      | Live demo         |
@@ -72,7 +90,7 @@
 | 9   | **Inventory Management**                   | 5 min       | Live demo         |
 | 10  | **Copilot for Azure**                      | 5 min       | Portal demo       |
 | —   | **Q&A & Cleanup**                          | 5 min       | Discussion        |
-|     | **Totaal**                                 | **~95 min** |                   |
+|     | **Total**                                  | **~95 min** |                   |
 
 ---
 
@@ -103,32 +121,32 @@ azd env get-values
 
 ---
 
-## Section 0: Introductie & Architectuur (5 min)
+## Section 0: Introduction & Architecture (5 min)
 
 ### Talking Notes
 
-**Wat is Azure Arc?**
+**What is Azure Arc?**
 
-- Azure Arc breidt de Azure control plane uit naar **elke infrastructuur**: on-prem, edge, multi-cloud
-- Het is **geen data plane migratie** — je workloads blijven waar ze zijn
-- Azure Arc voor Kubernetes maakt het mogelijk om **elke CNCF-conforme K8s cluster** te beheren vanuit Azure
+- Azure Arc extends the Azure control plane to **any infrastructure**: on-prem, edge, multi-cloud
+- It is **not a data plane migration** — your workloads stay where they are
+- Azure Arc for Kubernetes enables managing **any CNCF-compliant K8s cluster** from Azure
 
-**Waarom Arc-enabled Kubernetes?**
+**Why Arc-enabled Kubernetes?**
 
-- **Eén management plane** voor alle clusters (AKS, EKS, GKE, on-prem, edge)
-- **Consistent beleid** — Azure Policy werkt identiek op AKS en Arc
-- **Centraal overzicht** — alle clusters in Azure Resource Graph
-- **GitOps native** — Flux v2 is ingebouwd, niet een add-on
-- **Geen inbound firewall regels nodig** — agents maken outbound HTTPS verbindingen
+- **One management plane** for all clusters (AKS, EKS, GKE, on-prem, edge)
+- **Consistent policies** — Azure Policy works identically on AKS and Arc
+- **Central overview** — all clusters in Azure Resource Graph
+- **GitOps native** — Flux v2 is built-in, not an add-on
+- **No inbound firewall rules required** — agents make outbound HTTPS connections
 
-**Wat gaan we vandaag doen?**
+**What are we going to do today?**
 
-- Een K3s cluster opzetten in een VM (simuleert on-prem)
-- Dat cluster verbinden met Azure Arc
-- Alle enterprise features demonstreren: Policy, Defender, Monitoring, GitOps
-- Alles geautomatiseerd met Infrastructure as Code (Bicep + AZD)
+- Set up a K3s cluster in a VM (simulates on-prem)
+- Connect that cluster to Azure Arc
+- Demonstrate all enterprise features: Policy, Defender, Monitoring, GitOps
+- Everything automated with Infrastructure as Code (Bicep + AZD)
 
-**Key message:** _"Arc brengt Azure naar je infrastructuur, niet je infrastructuur naar Azure."_
+**Key message:** _"Arc brings Azure to your infrastructure, not your infrastructure to Azure."_
 
 ---
 
@@ -136,22 +154,22 @@ azd env get-values
 
 ### Talking Notes
 
-**Wat deployen we?**
+**What are we deploying?**
 
-- Een Ubuntu VM die onze "on-premises server" simuleert
-- Een VNet met NSG (SSH, HTTPS, K8s API open)
-- Een Log Analytics Workspace (voor monitoring later)
-- Alles via **Bicep** en **Azure Developer CLI (AZD)**
+- An Ubuntu VM that simulates our "on-premises server"
+- A VNet with NSG (SSH, HTTPS, K8s API open)
+- A Log Analytics Workspace (for monitoring later)
+- Everything via **Bicep** and **Azure Developer CLI (AZD)**
 
-**Waarom AZD?**
+**Why AZD?**
 
-- AZD is de developer-first CLI voor Azure
-- Combineert infra provisioning (Bicep) met app deployment
-- Eenvoudige `azd up` om alles te deployen
+- AZD is the developer-first CLI for Azure
+- Combines infra provisioning (Bicep) with app deployment
+- Simple `azd up` to deploy everything
 - Environment management (dev, staging, prod)
-- Ingebouwde hooks voor pre/post provisioning
+- Built-in hooks for pre/post provisioning
 
-**Walk-through van de Bicep code:**
+**Walk-through of the Bicep code:**
 
 ### Demo Steps
 
@@ -160,14 +178,14 @@ azd env get-values
 tree .  # or: Get-ChildItem -Recurse (PowerShell)
 ```
 
-**Bespreek de bestanden:**
+**Discuss the files:**
 
 | File                               | Purpose                                                      |
 | ---------------------------------- | ------------------------------------------------------------ |
-| `azure.yaml`                       | AZD project definitie — verwijst naar infra/main.bicep       |
+| `azure.yaml`                       | AZD project definition — points to infra/main.bicep          |
 | `infra/main.bicep`                 | Main orchestrator — subscription scope, creates RG + modules |
 | `infra/modules/network.bicep`      | VNet, Subnet, NSG, Public IP                                 |
-| `infra/modules/vm.bicep`           | Ubuntu 22.04 VM met password auth                            |
+| `infra/modules/vm.bicep`           | Ubuntu 22.04 VM with password auth                           |
 | `infra/modules/loganalytics.bicep` | Log Analytics workspace                                      |
 
 ```bash
@@ -195,7 +213,7 @@ azd env get-values
 #    SSH_COMMAND=ssh azureuser@x.x.x.x
 ```
 
-**Key message:** _"Met AZD + Bicep is je hele workshop-omgeving reproduceerbaar. Eén commando, alles staat klaar."_
+**Key message:** _"With AZD + Bicep your entire workshop environment is reproducible. One command, everything is ready."_
 
 ---
 
@@ -203,20 +221,20 @@ azd env get-values
 
 ### Talking Notes
 
-**Wat is K3s?**
+**What is K3s?**
 
-- Lightweight Kubernetes distributie door **Rancher (SUSE)**
-- Volledig CNCF-gecertificeerd — 100% compatibel met standard K8s
-- Enkele binary van ~70MB (vs. ~700MB+ voor standard kubeadm)
-- Ideaal voor **edge, IoT, development, resource-constrained** omgevingen
-- Bevat alles: containerd, Flannel CNI, CoreDNS, Traefik, local-path storage
+- Lightweight Kubernetes distribution by **Rancher (SUSE)**
+- Fully CNCF-certified — 100% compatible with standard K8s
+- Single binary of ~70MB (vs. ~700MB+ for standard kubeadm)
+- Ideal for **edge, IoT, development, resource-constrained** environments
+- Includes everything: containerd, Flannel CNI, CoreDNS, Traefik, local-path storage
 
-**Waarom K3s voor deze demo?**
+**Why K3s for this demo?**
 
-- Snelle installatie (~30 seconden)
-- Lage resource requirements (512MB RAM, 1 CPU)
-- Perfect om on-prem / edge scenario's te simuleren
-- Azure Arc werkt met **elke** CNCF K8s distributie
+- Fast installation (~30 seconds)
+- Low resource requirements (512MB RAM, 1 CPU)
+- Perfect for simulating on-prem / edge scenarios
+- Azure Arc works with **any** CNCF K8s distribution
 
 ### Demo Steps
 
@@ -224,34 +242,38 @@ azd env get-values
 # 1. SSH into the VM
 ssh azureuser@<VM_PUBLIC_IP>
 # (password from azd deployment)
+```
 
-# 2. Install K3s (show the script first, then run)
-cat scripts/sh/02-install-k3s.sh
+> **The script `02-install-k3s.sh` automates all of the steps below.** You only need to run the script — the individual commands are shown here for explanation purposes so you can walk through what happens under the hood.
 
-# Run it:
-curl -sfL https://get.k3s.io | sh -
+```bash
+# 2. Run the installation script (this does everything automatically)
+bash 02-install-k3s.sh
+```
 
-# 3. Configure kubectl
-mkdir -p ~/.kube
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-sudo chown $(id -u):$(id -g) ~/.kube/config
-export KUBECONFIG=~/.kube/config
+**What does the script do?**
 
-# 4. Verify the cluster
+1. **Update system** — `apt-get update && upgrade` for the latest security patches
+2. **Install K3s** — downloads and installs K3s via the official install script (`curl -sfL https://get.k3s.io | sh -`). This includes: containerd, Flannel CNI, CoreDNS, Traefik, and local-path storage
+3. **Configure kubectl** — copies the K3s kubeconfig to `~/.kube/config` so `kubectl` works immediately for the current user
+4. **Verify installation** — runs verification commands:
+
+```bash
+# These commands are executed automatically by the script:
 kubectl get nodes          # Should show 1 node (Ready)
 kubectl get pods -A        # System pods (coredns, traefik, etc.)
 kubectl cluster-info       # Cluster endpoint info
 k3s --version              # K3s version
 ```
 
-**Wijs op:**
+**Point out:**
 
-- K3s draait als systemd service: `systemctl status k3s`
-- Alles in één proces: API server, scheduler, controller manager, kubelet
-- SQLite ipv etcd voor single-node (etcd beschikbaar voor HA)
-- Traefik ingress controller is standaard geïnstalleerd
+- K3s runs as a systemd service: `systemctl status k3s`
+- Everything in one process: API server, scheduler, controller manager, kubelet
+- SQLite instead of etcd for single-node (etcd available for HA)
+- Traefik ingress controller is installed by default
 
-**Key message:** _"In 30 seconden heb je een productieklaar Kubernetes cluster. Dit draait nu volledig standalone, los van Azure."_
+**Key message:** _"In 30 seconds you have a production-ready Kubernetes cluster. It now runs fully standalone, independent from Azure."_
 
 ---
 
@@ -259,70 +281,86 @@ k3s --version              # K3s version
 
 ### Talking Notes
 
-**Wat gebeurt er tijdens onboarding?**
+**What happens during onboarding?**
 
-- De `az connectedk8s connect` command installeert Arc agents in het cluster
-- Agents worden gedeployed in de `azure-arc` namespace
-- De agents maken een **outbound HTTPS** verbinding naar Azure (geen inbound poorten nodig!)
-- Azure creëert een `connectedClusters` resource in je resource group
+- The `az connectedk8s connect` command installs Arc agents in the cluster
+- Agents are deployed in the `azure-arc` namespace
+- The agents make an **outbound HTTPS** connection to Azure (no inbound ports needed!)
+- Azure creates a `connectedClusters` resource in your resource group
 
-**Arc Agent componenten:** | Agent | Functie | |-------|---------| | `clusterconnect-agent` | Reverse proxy voor cluster access vanuit Azure | | `guard-agent` | Azure RBAC enforcement | | `cluster-metadata-operator` | Cluster metadata sync | | `config-agent` | GitOps/extensions configuratie | | `controller-manager` | Lifecycle management van agents |
+**Arc Agent components:**
+
+| Agent                       | Function                                    |
+| --------------------------- | ------------------------------------------- |
+| `clusterconnect-agent`      | Reverse proxy for cluster access from Azure |
+| `guard-agent`               | Azure RBAC enforcement                      |
+| `cluster-metadata-operator` | Cluster metadata sync                       |
+| `config-agent`              | GitOps/extensions configuration             |
+| `controller-manager`        | Lifecycle management of agents              |
 
 **Security model:**
 
-- Agents initiëren alle verbindingen (outbound only)
-- Communicatie via Azure Relay (of direct endpoints)
+- Agents initiate all connections (outbound only)
+- Communication via Azure Relay (or direct endpoints)
 - Managed Identity per cluster
-- Geen credentials opgeslagen in Azure
+- No credentials stored in Azure
 
 ### Demo Steps
 
 ```bash
-# Still on the VM via SSH
+# 1. SSH into the VM (if not already connected)
+ssh azureuser@<VM_PUBLIC_IP>
+```
 
-# 1. Install Azure CLI (on the VM)
-curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+> **The script `03-arc-onboard.sh` automates all the steps below.** You only need to run the script — the individual commands are shown here for clarification so you can explain what's happening under the hood.
 
-# 2. Login (device code flow since we're remote)
-az login --use-device-code
+```bash
+# 2. Run the onboarding script (this does everything automatically)
+bash 03-arc-onboard.sh
+```
 
-# 3. Install the connectedk8s extension
-az extension add --name connectedk8s --yes
+**What does the script do?**
 
-# 4. Set variables
-export RESOURCE_GROUP="rg-arcworkshop"
-export CLUSTER_NAME="arc-k3s-cluster"
-export LOCATION="westeurope"
+1. **Install Azure CLI** — installs the Azure CLI on the VM via the official install script (`curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash`)
+2. **Log in to Azure** — starts a device code flow login (`az login --use-device-code`) since we're working remotely via SSH. We use an interactive login here because we're onboarding **a single cluster** manually in the demo.
+   > **At scale:** to onboard tens or hundreds of clusters, use a **Service Principal** (`az login --service-principal`) or **Managed Identity**, combined with automation via Azure CLI scripts, Ansible, or CI/CD pipelines. See: [Arc K8s onboarding with Service Principal](https://learn.microsoft.com/azure/azure-arc/kubernetes/quickstart-connect-cluster?tabs=azure-cli#connect-using-a-service-principal) · [At-scale onboarding](https://learn.microsoft.com/azure/azure-arc/kubernetes/quickstart-connect-cluster?tabs=azure-cli#connect-a-large-number-of-clusters)
+3. **Install connectedk8s extension** — adds the Arc K8s CLI extension (`az extension add --name connectedk8s`)
+4. **Set variables** — configures resource group, cluster name, and location
+5. **Connect cluster to Azure Arc** — runs the actual onboarding command:
 
-# 5. Connect the cluster to Azure Arc
+```bash
+# This command is automatically executed by the script:
 az connectedk8s connect \
   --name $CLUSTER_NAME \
   --resource-group $RESOURCE_GROUP \
   --location $LOCATION
+```
 
-# 6. Verify — show status from CLI
-az connectedk8s show \
-  --name $CLUSTER_NAME \
-  --resource-group $RESOURCE_GROUP \
-  -o table
+6. **Verification** — checks whether onboarding was successful:
 
-# 7. Verify — show Arc pods on the cluster
+```bash
+# These commands are automatically executed by the script:
+az connectedk8s show --name $CLUSTER_NAME --resource-group $RESOURCE_GROUP -o table
 kubectl get pods -n azure-arc
 kubectl get deployments -n azure-arc
+```
 
-# 8. PORTAL: Show the Arc cluster resource
+**After the script — show in the portal:**
+
+```bash
+# PORTAL: Show the Arc cluster resource
 #    Navigate to: Resource Group > arc-k3s-cluster
 #    Show: Overview, Properties, Kubernetes version, Node count
 ```
 
-**Wijs op in de portal:**
+**Point out in the portal:**
 
-- Connected cluster resource met status "Connected"
-- Kubernetes versie en node count worden automatisch gesynchroniseerd
-- De cluster is nu zichtbaar in Azure Resource Graph
-- Tags, RBAC, en Activity Log werken net als bij native Azure resources
+- Connected cluster resource with status "Connected"
+- Kubernetes version and node count are automatically synchronized
+- The cluster is now visible in Azure Resource Graph
+- Tags, RBAC, and Activity Log work just like native Azure resources
 
-**Key message:** _"Met één commando is je on-prem cluster onderdeel van Azure. Geen VPN, geen inbound firewall rules, geen agent management."_
+**Key message:** _"With one command, your on-prem cluster is part of Azure. No VPN, no inbound firewall rules, no agent management."_
 
 ---
 
@@ -332,42 +370,43 @@ kubectl get deployments -n azure-arc
 
 **Cluster Connect feature:**
 
-- Toegang tot de K8s API **via Azure**, zonder directe netwerkverbinding
-- Werkt via de `az connectedk8s proxy` command
-- Ideaal voor secure access zonder VPN of ExpressRoute
-- Gebruikt Azure RBAC voor autorisatie
+- Access to the K8s API **via Azure**, without a direct network connection
+- Works via the `az connectedk8s proxy` command
+- Ideal for secure access without VPN or ExpressRoute
+- Uses Azure RBAC for authorization
 
-**Wat demonstreren we?**
+**What are we demonstrating?**
 
-- Vanuit je lokale machine, via Azure, een container deployen op het Arc cluster
-- Dit bewijst dat Azure de "single pane of glass" is
+- From your local machine, via Azure, deploy a container to the Arc cluster
+- **This is the core value of Arc:** you don't need SSH, VPN, or direct network access — Azure acts as a secure proxy to your cluster
 
 ### Demo Steps
 
 ```bash
 # Back on your LOCAL machine (not the VM)
 
-# METHOD 1: Cluster Connect (via Azure proxy)
-# Start the proxy in a terminal
+# 1. Start the Cluster Connect proxy
+#    This opens a tunnel via Azure to your Arc cluster
 az connectedk8s proxy \
   -n arc-k3s-cluster \
   -g rg-arcworkshop &
 
-# Now use kubectl locally as if the cluster is local!
+# 2. kubectl now works locally as if the cluster is right next to you!
+#    Behind the scenes, all traffic flows through Azure Arc
 kubectl get nodes
 kubectl get pods -A
 
-# Deploy the demo app
+# 3. Deploy the demo app — directly from your laptop
 kubectl apply -f k8s/demo-app.yaml
 
-# Watch the deployment
+# 4. Watch the deployment
 kubectl get pods -n demo -w
+```
 
-# METHOD 2: Via SSH (simpler)
-scp k8s/demo-app.yaml azureuser@<VM_IP>:~/
-ssh azureuser@<VM_IP> "kubectl apply -f ~/demo-app.yaml"
+> **Why is this special?** Your laptop has no direct network connection to the VM or the cluster. All communication flows through Azure Arc as a reverse proxy. In a production environment, this means: no VPN needed, no ports to open, and access controlled via Azure RBAC.
 
-# PORTAL: Show the workload in Azure Portal
+```bash
+# 5. PORTAL: Show the workload in Azure Portal
 #   Arc cluster > Kubernetes resources > Workloads
 #   - See the nginx-demo deployment
 #   - See pods, services, replica sets
@@ -375,14 +414,99 @@ ssh azureuser@<VM_IP> "kubectl apply -f ~/demo-app.yaml"
 #   Arc cluster > Kubernetes resources > Services and ingresses
 ```
 
-**Wijs op in de portal:**
+> **Fallback:** if Cluster Connect doesn't work during the demo, you can also deploy the app via SSH:
+>
+> ```bash
+> scp k8s/demo-app.yaml azureuser@<VM_IP>:~/
+> ssh azureuser@<VM_IP> "kubectl apply -f ~/demo-app.yaml"
+> ```
 
-- **Kubernetes resources** blade: volledig overzicht van workloads
-- Je kunt ook **direct vanuit de portal** YAML editen en toepassen
-- Namespace filtering, search, en live status
-- Dit werkt identiek voor Arc EN AKS clusters
+### Step 2: Deploy a second container via the Azure Portal
 
-**Key message:** _"Azure geeft je volledige visibility en control over workloads, ongeacht waar het cluster draait."_
+**What are we demonstrating?**
+
+- You can also **deploy a workload directly from the Azure Portal** by pasting YAML
+- No CLI needed — ideal for quick actions or when you don't have local tooling
+- **End result:** two containers running on-prem on the Arc-connected cluster
+
+**Demo Steps:**
+
+1. Go to the **Azure Portal** → your Arc cluster (`arc-k3s-cluster`)
+2. Navigate to **Kubernetes resources** → **Workloads**
+3. Click **+ Create** at the top → **Apply with YAML**
+4. Paste the YAML below and click **Add**:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-arc
+  namespace: demo
+  labels:
+    app: hello-arc
+    environment: workshop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-arc
+  template:
+    metadata:
+      labels:
+        app: hello-arc
+        environment: workshop
+    spec:
+      containers:
+        - name: httpd
+          image: httpd:2.4-alpine
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-arc
+  namespace: demo
+  labels:
+    app: hello-arc
+    environment: workshop
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: hello-arc
+```
+
+5. Wait for the pod to be `Running` — verify in **Workloads** or via CLI:
+
+```bash
+kubectl get pods -n demo
+# Expected: nginx-demo pods + hello-arc pod
+```
+
+> **Why show this?** It highlights that Azure Arc provides the same portal experience as AKS. Administrators can deploy, inspect, and manage workloads — all from one place, regardless of where the cluster runs.
+
+**Point out in the portal:**
+
+- **Kubernetes resources** blade: complete overview of workloads
+- Now **two applications** (nginx-demo + hello-arc) are running on the on-prem cluster
+- You can also **edit and apply YAML directly from the portal**
+- Namespace filtering, search, and live status
+- This works identically for Arc AND AKS clusters
+
+**Key message:** _"Azure gives you full visibility and control over workloads, regardless of where the cluster runs — via CLI and via the portal."_
 
 ---
 
@@ -390,25 +514,25 @@ ssh azureuser@<VM_IP> "kubectl apply -f ~/demo-app.yaml"
 
 ### Talking Notes
 
-**Azure Policy voor Kubernetes:**
+**Azure Policy for Kubernetes:**
 
-- Dezelfde Azure Policy engine die je kent voor Azure resources
-- Gebruikt **OPA Gatekeeper** onder de hood voor K8s enforcement
-- Werkt identiek op AKS en Arc-connected clusters
-- **Audit** mode (rapporteer) of **Deny** mode (blokkeer)
+- The same Azure Policy engine you know for Azure resources
+- Uses **OPA Gatekeeper** under the hood for K8s enforcement
+- Works identically on AKS and Arc-connected clusters
+- **Audit** mode (report) or **Deny** mode (block)
 
-**Wat configureren we?**
+**What are we configuring?**
 
-1. **No privileged containers** — Voorkom containers met root-level access
-2. **Require labels** — Enforce dat pods een `environment` label hebben
-3. **Allowed registries** — Alleen images van trusted registries toestaan
+1. **No privileged containers** — Prevent containers with root-level access
+2. **Require labels** — Enforce that pods have an `environment` label
+3. **Allowed registries** — Only allow images from trusted registries
 
-**Waarom dit belangrijk is:**
+**Why this matters:**
 
-- Consistente security baseline over ALLE clusters
-- Compliance rapportage in één dashboard
-- Automatische enforcement — geen handmatige reviews nodig
-- Audit trail voor regelgeving (SOC2, ISO27001, etc.)
+- Consistent security baseline across ALL clusters
+- Compliance reporting in one dashboard
+- Automatic enforcement — no manual reviews needed
+- Audit trail for regulations (SOC2, ISO27001, etc.)
 
 ### Demo Steps
 
@@ -455,14 +579,14 @@ ssh azureuser@<VM_IP> "kubectl apply -f ~/privileged-pod.yaml"
 #    Azure Policy > Compliance (filter by resource group)
 ```
 
-**Wijs op:**
+**Point out:**
 
-- Het duurt ~15-30 minuten voor policies volledig geëvalueerd zijn
-- Gatekeeper pods in de `gatekeeper-system` namespace
-- Policy compliance dashboard in de portal
-- Je kunt ook **initiative definitions** gebruiken voor groepen policies
+- It takes ~15-30 minutes for policies to be fully evaluated
+- Gatekeeper pods in the `gatekeeper-system` namespace
+- Policy compliance dashboard in the portal
+- You can also use **initiative definitions** for groups of policies
 
-**Key message:** _"Eén set policies, overal afgedwongen. Of het nu AKS in Azure is of K3s op een edge server — dezelfde regels, dezelfde compliance."_
+**Key message:** _"One set of policies, enforced everywhere. Whether it's AKS in Azure or K3s on an edge server — same rules, same compliance."_
 
 ---
 
@@ -470,19 +594,19 @@ ssh azureuser@<VM_IP> "kubectl apply -f ~/privileged-pod.yaml"
 
 ### Talking Notes
 
-**Wat biedt Defender voor Arc-connected clusters?**
+**What does Defender offer for Arc-connected clusters?**
 
-- **Runtime threat detection** — verdachte processen, crypto mining, reverse shells
-- **Vulnerability scanning** — CVE's in container images
-- **Security recommendations** — best practices voor cluster hardening
-- **Security alerts** — real-time notificaties bij threats
+- **Runtime threat detection** — suspicious processes, crypto mining, reverse shells
+- **Vulnerability scanning** — CVEs in container images
+- **Security recommendations** — best practices for cluster hardening
+- **Security alerts** — real-time notifications for threats
 
-**Hoe werkt het?**
+**How does it work?**
 
-- Defender sensor (DaemonSet) draait op elke node
-- Stuurt security data naar de Defender backend via Arc
-- Gecombineerd met Log Analytics voor correlatie
-- Dezelfde Defender ervaring als voor AKS
+- Defender sensor (DaemonSet) runs on every node
+- Sends security data to the Defender backend via Arc
+- Combined with Log Analytics for correlation
+- Same Defender experience as for AKS
 
 ### Demo Steps
 
@@ -506,7 +630,7 @@ az k8s-extension create \
 #    - Secure score impact
 ```
 
-**Key message:** _"Enterprise-grade security voor elke K8s cluster, beheerd vanuit Defender for Cloud. Dezelfde bescherming als AKS, ongeacht de locatie."_
+**Key message:** _"Enterprise-grade security for any K8s cluster, managed from Defender for Cloud. Same protection as AKS, regardless of location."_
 
 ---
 
@@ -516,17 +640,17 @@ az k8s-extension create \
 
 **Container Insights via Azure Monitor:**
 
-- Dezelfde monitoring ervaring als AKS
+- Same monitoring experience as AKS
 - CPU, memory, network metrics per node/pod/container
-- Container logs centraal in Log Analytics
-- Pre-built workbooks en dashboards
-- KQL queries voor diepgaande analyse
+- Container logs centralized in Log Analytics
+- Pre-built workbooks and dashboards
+- KQL queries for in-depth analysis
 
-**Hoe werkt het?**
+**How does it work?**
 
-- Azure Monitor agent (AMA) als extension op het Arc cluster
-- Data wordt naar Log Analytics gestuurd
-- Perf data, inventory, en logs — alles gecorreleerd
+- Azure Monitor agent (AMA) as extension on the Arc cluster
+- Data is sent to Log Analytics
+- Perf data, inventory, and logs — all correlated
 
 ### Demo Steps
 
@@ -572,14 +696,14 @@ az k8s-extension create \
 #    - Multi-cluster view (Arc + AKS together!)
 ```
 
-**Wijs op:**
+**Point out:**
 
-- Multi-cluster monitoring: Arc EN AKS clusters naast elkaar
-- Custom alerts op basis van KQL queries
-- Workbooks zijn deelbaar en aanpasbaar
-- Data retention configureerbaar (30-730 dagen)
+- Multi-cluster monitoring: Arc AND AKS clusters side by side
+- Custom alerts based on KQL queries
+- Workbooks are shareable and customizable
+- Data retention configurable (30-730 days)
 
-**Key message:** _"Eén monitoring platform voor al je clusters. Dezelfde KQL queries, dezelfde dashboards, of het nu Arc of AKS is."_
+**Key message:** _"One monitoring platform for all your clusters. Same KQL queries, same dashboards, whether it's Arc or AKS."_
 
 ---
 
@@ -587,20 +711,20 @@ az k8s-extension create \
 
 ### Talking Notes
 
-**Wat is GitOps?**
+**What is GitOps?**
 
-- **Git als single source of truth** voor cluster configuratie
-- Pull-based model: Flux in het cluster haalt wijzigingen op
-- Automatische reconciliation: drift wordt automatisch gecorrigeerd
+- **Git as the single source of truth** for cluster configuration
+- Pull-based model: Flux in the cluster pulls changes
+- Automatic reconciliation: drift is automatically corrected
 - Audit trail via Git history
 
-**Flux v2 op Azure Arc:**
+**Flux v2 on Azure Arc:**
 
-- CNCF graduated project, native geïntegreerd in Azure
-- Ondersteunt Kustomize en Helm
-- Beheerd via Azure (`az k8s-configuration flux`)
-- Compliance status zichtbaar in Azure Portal
-- Werkt identiek op AKS en Arc
+- CNCF graduated project, natively integrated into Azure
+- Supports Kustomize and Helm
+- Managed via Azure (`az k8s-configuration flux`)
+- Compliance status visible in Azure Portal
+- Works identically on AKS and Arc
 
 **Workflow:**
 
@@ -657,14 +781,14 @@ ssh azureuser@<VM_IP> "kubectl get all --all-namespaces | grep -i gitops"
 #    - Or force sync: az k8s-configuration flux update ...
 ```
 
-**Wijs op:**
+**Point out:**
 
-- Flux draait in `flux-system` namespace
-- Private Git repos worden ondersteund (SSH keys, tokens)
-- Helm charts worden ook ondersteund
+- Flux runs in the `flux-system` namespace
+- Private Git repos are supported (SSH keys, tokens)
+- Helm charts are also supported
 - Multi-tenancy: namespace-scoped vs cluster-scoped configs
 
-**Key message:** _"GitOps via Azure Arc: centraal beheer, automatische deployment, full audit trail. Configuratie IS code."_
+**Key message:** _"GitOps via Azure Arc: centralized management, automatic deployment, full audit trail. Configuration IS code."_
 
 ---
 
@@ -674,17 +798,17 @@ ssh azureuser@<VM_IP> "kubectl get all --all-namespaces | grep -i gitops"
 
 **Azure Resource Graph:**
 
-- Instant queries over ALLE Azure resources (incl. Arc clusters)
+- Instant queries across ALL Azure resources (incl. Arc clusters)
 - Cross-subscription, cross-tenant queries
-- Sub-second response times, zelfs bij duizenden resources
-- Perfect voor compliance reporting en dashboards
+- Sub-second response times, even with thousands of resources
+- Perfect for compliance reporting and dashboards
 
-**Typische use cases:**
+**Typical use cases:**
 
-- Hoeveel clusters draaien op verouderde K8s versie?
-- Welke clusters missen de monitoring extension?
-- Compliance status overzicht per cluster
-- Clusters die offline zijn (disconnected)
+- How many clusters are running an outdated K8s version?
+- Which clusters are missing the monitoring extension?
+- Compliance status overview per cluster
+- Clusters that are offline (disconnected)
 
 ### Demo Steps
 
@@ -719,7 +843,7 @@ az graph query -q "
 #    - Filter, sort, tag management
 ```
 
-**Key message:** _"Resource Graph geeft je instant overzicht over je hele Kubernetes fleet. Arc + AKS, één query."_
+**Key message:** _"Resource Graph gives you instant visibility across your entire Kubernetes fleet. Arc + AKS, one query."_
 
 ---
 
@@ -729,19 +853,19 @@ az graph query -q "
 
 **Microsoft Copilot in Azure:**
 
-- Natural language interface voor Azure management
-- Geïntegreerd in de Azure Portal
-- Begrijpt context van je huidige resource
+- Natural language interface for Azure management
+- Integrated into the Azure Portal
+- Understands the context of your current resource
 
-**Demo scenario's voor Arc:**
+**Demo scenarios for Arc:**
 
-- _"Toon me alle Arc-connected clusters die niet compliant zijn"_
-- _"Wat is de status van mijn K3s cluster?"_
-- _"Hoeveel nodes heeft mijn Arc cluster?"_
-- _"Maak een KQL query om container errors te vinden"_
-- _"Welke policies zijn toegewezen aan mijn Arc cluster?"_
-- _"Help me een GitOps configuratie aan te maken"_
-- _"Wat zijn de security recommendations voor mijn cluster?"_
+- _"Show me all Arc-connected clusters that are non-compliant"_
+- _"What is the status of my K3s cluster?"_
+- _"How many nodes does my Arc cluster have?"_
+- _"Create a KQL query to find container errors"_
+- _"Which policies are assigned to my Arc cluster?"_
+- _"Help me create a GitOps configuration"_
+- _"What are the security recommendations for my cluster?"_
 
 ### Demo Steps
 
@@ -768,7 +892,7 @@ PORTAL DEMO (live):
    → Copilot walks through the steps
 ```
 
-**Key message:** _"Copilot maakt Azure Arc nog toegankelijker. Natural language, contextbewust, en geïntegreerd in je workflow."_
+**Key message:** _"Copilot makes Azure Arc even more accessible. Natural language, context-aware, and integrated into your workflow."_
 
 ---
 
@@ -800,10 +924,10 @@ az group delete --name rg-arcworkshop --yes --no-wait
 | **Inventory**           | Resource Graph — instant queries across your entire fleet        |
 | **AI-Assisted**         | Copilot — natural language management                            |
 
-### Kernboodschap
+### Core Message
 
-> **Azure Arc brengt de Azure management plane naar JE clusters — niet je clusters naar Azure.**  
-> Dezelfde tools, dezelfde policies, dezelfde monitoring. Ongeacht waar je Kubernetes draait.
+> **Azure Arc brings the Azure management plane to YOUR clusters — not your clusters to Azure.**  
+> Same tools, same policies, same monitoring. Regardless of where your Kubernetes runs.
 
 ---
 

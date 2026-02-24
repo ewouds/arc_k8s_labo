@@ -29,7 +29,8 @@ azd env get-values
 ```
 arc_k8s/
 ├── azure.yaml                    # AZD project configuration
-├── WORKSHOP.md                   # 📋 Full agenda + talking notes + demo steps
+├── WORKSHOP-EN.md                # 📋 Workshop guide (English)
+├── WORKSHOP-NL.md                # 📋 Workshop guide (Nederlands)
 ├── README.md                     # This file
 │
 ├── infra/                        # Bicep infrastructure-as-code
@@ -89,7 +90,10 @@ arc_k8s/
 
 ## Workshop Flow
 
-See [WORKSHOP.md](WORKSHOP.md) for the complete agenda with talking notes, timing, and step-by-step demo instructions.
+See the workshop guide in your preferred language:
+
+- **English:** [WORKSHOP-EN.md](WORKSHOP-EN.md)
+- **Nederlands:** [WORKSHOP-NL.md](WORKSHOP-NL.md)
 
 | Step | Duration | What                            |
 | ---- | -------- | ------------------------------- |
