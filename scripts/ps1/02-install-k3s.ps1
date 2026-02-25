@@ -22,10 +22,10 @@ if (-not $vmIp) {
 $vmUser = "azureuser"
 
 Write-Host ""
-Write-Host "📋 Target: $vmUser@$vmIp" -ForegroundColor Yellow
+Write-Host "[INFO] Target: $vmUser@$vmIp" -ForegroundColor Yellow
 
 Write-Host ""
-Write-Host "🚀 Installing K3s via SSH..." -ForegroundColor Yellow
+Write-Host "[RUN] Installing K3s via SSH..." -ForegroundColor Yellow
 Write-Host "  This will:"
 Write-Host "    1. Update system packages"
 Write-Host "    2. Install K3s (single-node cluster)"
@@ -36,16 +36,16 @@ Write-Host ""
 $sshTarget = "${vmUser}@${vmIp}"
 $sshCommand = @'
 set -e
-echo '📦 Updating system packages...'
+echo '[INSTALL] Updating system packages...'
 sudo apt-get update -y && sudo apt-get upgrade -y
 
-echo '🚀 Installing K3s...'
+echo '[RUN] Installing K3s...'
 curl -sfL https://get.k3s.io | sh -
 
-echo '⏳ Waiting for K3s...'
+echo '[WAIT] Waiting for K3s...'
 sleep 10
 
-echo '🔧 Configuring kubectl...'
+echo '[CONFIG] Configuring kubectl...'
 mkdir -p ~/.kube
 sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
 sudo chown $(id -u):$(id -g) ~/.kube/config
@@ -67,7 +67,7 @@ echo '--- K3s Version ---'
 k3s --version
 
 echo ''
-echo '✅ K3s installed and running!'
+echo '[OK] K3s installed and running!'
 '@
 
 # Strip Windows carriage returns to avoid \r errors on Linux
@@ -77,6 +77,6 @@ ssh -o StrictHostKeyChecking=no $sshTarget $sshCommand
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  ✅ K3s installation complete!"            -ForegroundColor Green
+Write-Host "  [OK] K3s installation complete!"            -ForegroundColor Green
 Write-Host "  Next: Run 03-arc-onboard.ps1"             -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan

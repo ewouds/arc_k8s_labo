@@ -5,7 +5,7 @@
 # This deploys a small AKS cluster so you can demonstrate Azure Resource Graph
 # queries that show Arc + AKS clusters side by side.
 #
-# ⚠️  EXTRA COST: ~€0.10/hour (Standard_B2s node)
+# [WARN]  EXTRA COST: ~EUR0.10/hour (Standard_B2s node)
 #     Run cleanup when done: az group delete --name rg-arcworkshop-aks --yes
 # ============================================================================
 $ErrorActionPreference = "Stop"
@@ -20,12 +20,12 @@ $aksClusterName   = "aks-workshop-cluster"
 $location         = if ($env:AZURE_LOCATION) { $env:AZURE_LOCATION } else { "swedencentral" }
 
 Write-Host ""
-Write-Host "📋 Configuration:" -ForegroundColor Yellow
+Write-Host "[INFO] Configuration:" -ForegroundColor Yellow
 Write-Host "  Resource Group: $aksResourceGroup"
 Write-Host "  AKS Cluster:    $aksClusterName"
 Write-Host "  Location:       $location"
 Write-Host ""
-Write-Host "⚠️  This will incur additional Azure costs (~€0.10/hour)" -ForegroundColor DarkYellow
+Write-Host "[WARN]  This will incur additional Azure costs (~EUR0.10/hour)" -ForegroundColor DarkYellow
 Write-Host "  The AKS cluster uses a single Standard_B2s node" -ForegroundColor DarkGray
 Write-Host ""
 
@@ -37,13 +37,13 @@ if ($confirm -notin @('y', 'Y')) {
 
 # --- 1. Create resource group ---
 Write-Host ""
-Write-Host "📦 Creating resource group..." -ForegroundColor Yellow
+Write-Host "[INSTALL] Creating resource group..." -ForegroundColor Yellow
 az group create --name $aksResourceGroup --location $location -o none
-Write-Host "  ✅ Resource group created" -ForegroundColor Green
+Write-Host "  [OK] Resource group created" -ForegroundColor Green
 
 # --- 2. Deploy AKS cluster ---
 Write-Host ""
-Write-Host "🚀 Deploying AKS cluster (this takes ~5 minutes)..." -ForegroundColor Yellow
+Write-Host "[RUN] Deploying AKS cluster (this takes ~5 minutes)..." -ForegroundColor Yellow
 Write-Host "  Single node, Standard_B2s (minimal cost)" -ForegroundColor DarkGray
 
 az aks create `
@@ -59,7 +59,7 @@ az aks create `
 
 # Poll for status
 Write-Host ""
-Write-Host "⏳ Waiting for AKS cluster to provision..." -ForegroundColor DarkYellow
+Write-Host "[WAIT] Waiting for AKS cluster to provision..." -ForegroundColor DarkYellow
 $maxAttempts = 30
 $attempt = 0
 $state = "Creating"
@@ -74,15 +74,15 @@ while ($attempt -lt $maxAttempts -and $state -notin @("Succeeded", "Failed")) {
 }
 
 if ($state -eq "Succeeded") {
-    Write-Host "  ✅ AKS cluster deployed successfully" -ForegroundColor Green
+    Write-Host "  [OK] AKS cluster deployed successfully" -ForegroundColor Green
 }
 else {
-    Write-Host "  ⚠️  AKS cluster still provisioning. Check Azure Portal." -ForegroundColor DarkYellow
+    Write-Host "  [WARN]  AKS cluster still provisioning. Check Azure Portal." -ForegroundColor DarkYellow
 }
 
 # --- 3. Deploy a sample workload ---
 Write-Host ""
-Write-Host "📦 Deploying sample workload to AKS..." -ForegroundColor Yellow
+Write-Host "[INSTALL] Deploying sample workload to AKS..." -ForegroundColor Yellow
 
 az aks get-credentials --name $aksClusterName --resource-group $aksResourceGroup --overwrite-existing 2>$null
 
@@ -114,7 +114,7 @@ spec:
             - containerPort: 80
           env:
             - name: TITLE
-              value: "Hello from AKS! ☁️"
+              value: "Hello from AKS! [CLOUD]"
           resources:
             requests:
               cpu: 50m
@@ -124,13 +124,13 @@ spec:
               memory: 128Mi
 EOF
 
-Write-Host "  ✅ Sample workload deployed" -ForegroundColor Green
+Write-Host "  [OK] Sample workload deployed" -ForegroundColor Green
 
 # --- 4. Show comparison ---
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-Write-Host "  🔍 Arc + AKS side by side:" -ForegroundColor White
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
+Write-Host "  [CHECK] Arc + AKS side by side:" -ForegroundColor White
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 az graph query -q @"
 resources
@@ -144,15 +144,15 @@ resources
 "@ -o table
 
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host "  Now run script 09 again to see both clusters" -ForegroundColor White
 Write-Host "  in the Resource Graph queries!" -ForegroundColor White
 Write-Host ""
-Write-Host "  ⚠️  Cleanup when done:" -ForegroundColor DarkYellow
+Write-Host "  [WARN]  Cleanup when done:" -ForegroundColor DarkYellow
 Write-Host "  az group delete --name $aksResourceGroup --yes" -ForegroundColor White
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  ✅ AKS cluster ready for inventory demo!" -ForegroundColor Green
+Write-Host "  [OK] AKS cluster ready for inventory demo!" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Cyan

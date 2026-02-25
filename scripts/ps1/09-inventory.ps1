@@ -13,9 +13,9 @@ $clusterName   = if ($env:CLUSTER_NAME)   { $env:CLUSTER_NAME }   else { "arc-k3
 
 # --- 1. All Arc-connected clusters ---
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host "  Query 1: All Arc-connected clusters" -ForegroundColor White
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 az graph query -q @"
 resources
@@ -30,9 +30,9 @@ resources
 
 # --- 2. K8s version distribution ---
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host "  Query 2: K8s version distribution" -ForegroundColor White
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 az graph query -q @"
 resources
@@ -45,9 +45,9 @@ resources
 
 # --- 3. Extensions per cluster ---
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host "  Query 3: Extensions installed" -ForegroundColor White
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 az k8s-extension list `
   --cluster-name $clusterName `
@@ -58,9 +58,9 @@ az k8s-extension list `
 
 # --- 4. Arc + AKS side by side ---
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host "  Query 4: Arc + AKS clusters combined" -ForegroundColor White
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 az graph query -q @"
 resources
@@ -75,9 +75,9 @@ resources
 
 # --- 5. GitOps configurations ---
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host "  Query 5: GitOps configurations" -ForegroundColor White
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 az k8s-configuration flux list `
   --cluster-name $clusterName `
@@ -87,12 +87,12 @@ az k8s-configuration flux list `
   -o table 2>$null
 
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host "  Portal: Resource Graph Explorer" -ForegroundColor White
 Write-Host "  Portal: Arc > Kubernetes clusters" 
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  ✅ Inventory queries complete!"           -ForegroundColor Green
+Write-Host "  [OK] Inventory queries complete!"           -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Cyan

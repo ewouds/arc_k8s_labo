@@ -1,0 +1,51 @@
+# TrafficSplit (SMI spec) — canary: 80% to v1, 20% to v2
+# Applied in Exercise 10, Step 5 to demonstrate traffic management via Arc GitOps
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: backend-split
+  namespace: mesh-demo
+spec:
+  service: backend
+  backends:
+    - service: backend-v1
+      weight: 800
+    - service: backend-v2
+      weight: 200
+---
+# Per-version services required by TrafficSplit
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-v1
+  namespace: mesh-demo
+  labels:
+    app: backend
+    version: v1
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app: backend
+    version: v1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-v2
+  namespace: mesh-demo
+  labels:
+    app: backend
+    version: v2
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app: backend
+    version: v2

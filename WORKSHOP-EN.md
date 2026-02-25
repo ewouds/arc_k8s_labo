@@ -107,9 +107,10 @@ By the end of this lab you will be able to:
 | 7   | **Monitoring & Observability**             | 10 min      | Hands-on + Portal |
 | 8   | **GitOps with Flux**                       | 10 min      | Hands-on          |
 | 9   | **Inventory Management**                   | 5 min       | Hands-on          |
-| 10  | **Copilot for Azure**                      | 5 min       | Portal            |
+| 10  | **Service Mesh on Arc**                    | 15 min      | Hands-on          |
+| 11  | **Copilot for Azure**                      | 5 min       | Portal            |
 | —   | **Cleanup**                                | 5 min       | Hands-on          |
-|     | **Total**                                  | **~95 min** |                   |
+|     | **Total**                                  | **~110 min**|                   |
 
 ---
 
@@ -910,7 +911,218 @@ az graph query -q "
 
 ---
 
-## Exercise 10: Copilot for Azure (5 min)
+## Exercise 10: Service Mesh on Arc (15 min)
+
+In this exercise you will deploy the **Linkerd** service mesh on your Arc-connected cluster and manage it exclusively through Azure Arc capabilities: **GitOps**, **Container Insights**, **Azure Policy**, and **Cluster Connect**.
+
+### Why a Service Mesh?
+
+| Problem | Mesh Solution |
+| --- | --- |
+| Unencrypted pod-to-pod traffic | **mTLS** — automatic mutual TLS between all services |
+| No traffic control | **Traffic Splitting** — canary deployments with weighted routing |
+| Limited observability | **Golden metrics** — latency, success rate, throughput per route |
+| No uniform policy | **Azure Policy** — enforce sidecar injection across clusters |
+
+### Why Linkerd?
+
+- **Lightweight:** ~50 MB RAM (vs. Istio ~500 MB+). Perfect for K3s / edge.
+- **CNCF Graduated:** production-grade, battle-tested.
+- **SMI compatible:** uses the Service Mesh Interface standard for traffic splitting.
+- **Fast install:** < 60 seconds on a K3s cluster.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│  mesh-demo namespace (linkerd.io/inject=enabled) │
+│                                                  │
+│  ┌──────────────┐      ┌──────────────────┐     │
+│  │  frontend     │─────▶│  backend (v1+v2) │     │
+│  │  nginx proxy  │ mTLS │  http-echo       │     │
+│  │  + sidecar    │      │  + sidecar       │     │
+│  └──────────────┘      └──────────────────┘     │
+│                              │                   │
+│                    ┌─────────┴─────────┐        │
+│                    │   TrafficSplit     │        │
+│                    │  80% v1 / 20% v2  │        │
+│                    └───────────────────┘        │
+└─────────────────────────────────────────────────┘
+```
+
+### Step 1 — Install Linkerd Service Mesh
+
+```bash
+# Install Linkerd CLI
+curl -fsL https://run.linkerd.io/install | sh
+export PATH=$HOME/.linkerd2/bin:$PATH
+
+# Pre-flight check
+linkerd check --pre
+
+# Install CRDs + control plane
+linkerd install --crds | kubectl apply -f -
+linkerd install | kubectl apply -f -
+
+# Verify installation
+linkerd check
+```
+
+<details>
+<summary>💡 PowerShell alternative</summary>
+
+```powershell
+# Download for Windows (or use: scoop install linkerd)
+$v = (Invoke-RestMethod "https://api.github.com/repos/linkerd/linkerd2/releases/latest").tag_name
+Invoke-WebRequest "https://github.com/linkerd/linkerd2/releases/download/$v/linkerd2-cli-$v-windows.exe" -OutFile linkerd.exe
+
+.\linkerd.exe check --pre
+.\linkerd.exe install --crds | kubectl apply -f -
+.\linkerd.exe install | kubectl apply -f -
+.\linkerd.exe check
+```
+</details>
+
+> **🔑 Arc added value:** You don't need SSH access to the cluster. Use `az connectedk8s proxy` (Cluster Connect) to run these commands from your laptop through Azure.
+
+### Step 2 — Deploy Mesh Demo App
+
+Deploy a two-service application: **frontend** (nginx reverse proxy) → **backend** (http-echo). Both get Linkerd sidecar proxies automatically.
+
+```bash
+# Create the namespace (has linkerd.io/inject=enabled label)
+kubectl apply -f k8s/mesh-demo/namespace.yaml
+
+# Deploy frontend + backend
+kubectl apply -f k8s/mesh-demo/backend-v1.yaml
+kubectl apply -f k8s/mesh-demo/backend-service.yaml
+kubectl apply -f k8s/mesh-demo/frontend.yaml
+
+# Wait for pods
+kubectl wait --for=condition=ready pod -l app=backend -n mesh-demo --timeout=120s
+kubectl wait --for=condition=ready pod -l app=frontend -n mesh-demo --timeout=120s
+
+# Verify: each pod should have 2 containers (app + linkerd-proxy)
+kubectl get pods -n mesh-demo
+```
+
+Expected output:
+```
+NAME                          READY   STATUS    RESTARTS   AGE
+backend-v1-xxxxx-yyyyy        2/2     Running   0          30s
+backend-v1-xxxxx-zzzzz        2/2     Running   0          30s
+frontend-xxxxx-yyyyy          2/2     Running   0          30s
+```
+
+The `2/2` confirms the Linkerd sidecar proxy was injected.
+
+> **🔑 Arc added value:** In production, you would push these manifests to Git and let **Flux** (Exercise 8) deploy them. The GitOps files are ready in `gitops/apps/mesh-demo.yaml`.
+
+### Step 3 — Verify mTLS (Zero-Trust)
+
+Linkerd automatically encrypts ALL pod-to-pod traffic with mutual TLS. No code changes needed.
+
+```bash
+# Check that sidecars are injected
+kubectl get pod -l app=frontend -n mesh-demo -o jsonpath='{.items[0].spec.containers[*].name}'
+# Output: frontend linkerd-proxy
+
+# Test service-to-service communication
+FRONTEND_POD=$(kubectl get pod -l app=frontend -n mesh-demo -o jsonpath='{.items[0].metadata.name}')
+kubectl exec $FRONTEND_POD -n mesh-demo -c frontend -- wget -qO- http://backend.mesh-demo.svc.cluster.local/
+# Output: Hello from backend-v1 🟢
+```
+
+Optionally, install `linkerd-viz` for a detailed mTLS dashboard:
+
+```bash
+linkerd viz install | kubectl apply -f -
+linkerd viz stat deploy -n mesh-demo
+```
+
+> **Key takeaway:** _"Every call between services is now encrypted with mTLS — zero-trust networking without changing a single line of application code."_
+
+### Step 4 — Observe via Container Insights
+
+Because Container Insights (Exercise 7) is already installed, Azure Monitor automatically captures the Linkerd sidecar metrics.
+
+**In the Azure Portal:**
+1. Navigate to **Arc cluster → Insights → Containers**
+2. Filter by namespace: `mesh-demo`
+3. You'll see **2 containers per pod**: the app container + `linkerd-proxy`
+
+**KQL query** to find sidecar containers:
+```kql
+ContainerInventory
+| where Namespace == "mesh-demo"
+| where ContainerName contains "linkerd"
+| summarize count() by Computer, ContainerName
+```
+
+> **🔑 Arc added value:** _"Same Azure Monitor dashboards you use for AKS. The mesh sidecar metrics just appear — no extra configuration."_
+
+### Step 5 — Canary Deployment via Traffic Splitting
+
+Deploy a second version of the backend and split traffic using the **SMI TrafficSplit** resource:
+
+```bash
+# Deploy backend-v2 + TrafficSplit (80/20)
+kubectl apply -f k8s/mesh-demo/backend-v2.yaml
+kubectl apply -f k8s/mesh-demo/traffic-split.yaml
+
+# Wait for v2
+kubectl wait --for=condition=ready pod -l app=backend,version=v2 -n mesh-demo --timeout=120s
+
+# Test: send 10 requests and observe the split
+for i in $(seq 1 10); do
+  kubectl exec $FRONTEND_POD -n mesh-demo -c frontend -- wget -qO- http://backend.mesh-demo.svc.cluster.local/
+done
+```
+
+Expected output (~80% v1, ~20% v2):
+```
+Hello from backend-v1 🟢
+Hello from backend-v1 🟢
+Hello from backend-v2 🔵 (canary)
+Hello from backend-v1 🟢
+Hello from backend-v1 🟢
+...
+```
+
+> **🔑 Arc added value:** In a GitOps workflow, you push the `TrafficSplit` manifest to Git → Flux applies it automatically. The canary configuration in `gitops/apps/mesh-canary.yaml` is ready for this.
+
+### Step 6 — Enforce Mesh via Azure Policy
+
+Azure Policy (Exercise 5) can enforce that all pods in mesh-enabled namespaces have the sidecar annotation:
+
+```bash
+# The namespace already has the injection label
+kubectl get namespace mesh-demo --show-labels
+# linkerd.io/inject=enabled
+```
+
+In production, you would create an Azure Policy that:
+- **Audits** pods without `linkerd.io/inject` annotation
+- **Denies** deployments to mesh namespaces without sidecars
+- **Reports** compliance in the Azure Portal (Policy → Compliance)
+
+> **🔑 Arc added value:** _"One policy definition, applied across all your Arc + AKS clusters. Mesh governance at scale."_
+
+### Summary: Arc Added Value for Service Mesh
+
+| Arc Capability | What It Does for Your Mesh |
+| --- | --- |
+| **GitOps (Flux)** | Deploy mesh config via Git — no direct cluster access needed |
+| **Container Insights** | Sidecar metrics visible in Azure Monitor — same dashboards as AKS |
+| **Azure Policy** | Enforce sidecar injection across ALL clusters from one place |
+| **Cluster Connect** | Manage the mesh remotely via `az connectedk8s proxy` |
+| **Resource Graph** | Query mesh status across your entire fleet in seconds |
+
+> **Key takeaway:** _"The service mesh runs on your cluster, but Azure Arc gives you the management plane — GitOps, monitoring, policy, and remote access. One consistent experience across on-prem, edge, and multi-cloud."_
+
+---
+
+## Exercise 11: Copilot for Azure (5 min)
 
 In this exercise you will use Microsoft Copilot in the Azure Portal to manage your Arc cluster with natural language.
 
@@ -976,6 +1188,7 @@ Congratulations! You've completed the Azure Arc-enabled Kubernetes hands-on lab.
 | **Monitoring**          | Container Insights — same dashboards as AKS                      |
 | **GitOps**              | Flux v2 — Git as source of truth, managed from Azure             |
 | **Inventory**           | Resource Graph — instant queries across your entire fleet        |
+| **Service Mesh**        | Linkerd — mTLS, traffic splitting, managed via Arc GitOps        |
 | **AI-Assisted**         | Copilot — natural language management                            |
 
 ### Core Message
@@ -1032,6 +1245,8 @@ Before using Arc in production, consider:
 | Azure Developer CLI (azd) | [learn.microsoft.com/.../azure-developer-cli/](https://learn.microsoft.com/azure/developer/azure-developer-cli/) |
 | Azure Arc Jumpstart | [azurearcjumpstart.com](https://azurearcjumpstart.com/) |
 | Flux CD docs | [fluxcd.io/docs/](https://fluxcd.io/docs/) |
+| Linkerd service mesh | [linkerd.io](https://linkerd.io/) |
+| SMI Traffic Split spec | [smi-spec.io](https://smi-spec.io/) |
 | OPA Gatekeeper | [open-policy-agent.github.io/gatekeeper/](https://open-policy-agent.github.io/gatekeeper/) |
 
 ---

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-v1
+  namespace: mesh-demo
+  labels:
+    app: backend
+    version: v1
+    environment: workshop
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: backend
+        version: v1
+        environment: workshop
+      annotations:
+        linkerd.io/inject: enabled
+    spec:
+      containers:
+        - name: backend
+          image: hashicorp/http-echo:0.2.3
+          args:
+            - "-text=Hello from backend-v1 🟢"
+            - "-listen=:8080"
+          ports:
+            - containerPort: 8080
+              name: http
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi

@@ -13,13 +13,13 @@ $resourceGroup = if ($env:RESOURCE_GROUP) { $env:RESOURCE_GROUP } else { "rg-arc
 $clusterName = if ($env:CLUSTER_NAME) { $env:CLUSTER_NAME }   else { "arc-k3s-cluster" }
 
 Write-Host ""
-Write-Host "📋 Configuration:" -ForegroundColor Yellow
+Write-Host "[INFO] Configuration:" -ForegroundColor Yellow
 Write-Host "  Resource Group: $resourceGroup"
 Write-Host "  Cluster Name:   $clusterName"
 
 # --- 1. Install Azure Policy extension ---
 Write-Host ""
-Write-Host "📦 Installing Azure Policy extension (OPA Gatekeeper)..." -ForegroundColor Yellow
+Write-Host "[INSTALL] Installing Azure Policy extension (OPA Gatekeeper)..." -ForegroundColor Yellow
 
 az k8s-extension create `
   --name azurepolicy `
@@ -29,7 +29,7 @@ az k8s-extension create `
   --extension-type Microsoft.PolicyInsights
 
 Write-Host ""
-Write-Host "⏳ Checking extension status..." -ForegroundColor DarkYellow
+Write-Host "[WAIT] Checking extension status..." -ForegroundColor DarkYellow
 az k8s-extension show `
   --name azurepolicy `
   --cluster-name $clusterName `
@@ -46,44 +46,44 @@ $clusterId = az connectedk8s show `
 
 # --- 3. Assign policies ---
 Write-Host ""
-Write-Host "📜 Assigning Azure Policies..." -ForegroundColor Yellow
+Write-Host "[POLICY] Assigning Azure Policies..." -ForegroundColor Yellow
 
 # Policy 1: No privileged containers
 Write-Host ""
-Write-Host "  📌 Policy: Do not allow privileged containers" -ForegroundColor White
+Write-Host "  [PIN] Policy: Do not allow privileged containers" -ForegroundColor White
 az policy assignment create `
   --name "no-privileged-containers" `
   --display-name "[Arc Workshop] Do not allow privileged containers" `
   --policy "95edb821-ddaf-4404-9732-666045e056b4" `
   --scope $clusterId `
   --params '{\"effect\":{\"value\":\"Deny\"}}'
-if ($LASTEXITCODE -ne 0) { Write-Host "  ⚠️  Policy may already be assigned or failed" -ForegroundColor DarkYellow }
+if ($LASTEXITCODE -ne 0) { Write-Host "  [WARN]  Policy may already be assigned or failed" -ForegroundColor DarkYellow }
 
 # Policy 2: Require environment label
 Write-Host ""
-Write-Host "  📌 Policy: Require 'environment' label" -ForegroundColor White
+Write-Host "  [PIN] Policy: Require 'environment' label" -ForegroundColor White
 az policy assignment create `
   --name "require-env-label" `
   --display-name "[Arc Workshop] Pods must have environment label" `
   --policy "46592696-4c7b-4bf3-9e45-6c2763bdc0a6" `
   --scope $clusterId `
   --params '{\"effect\":{\"value\":\"Deny\"},\"labelsList\":{\"value\":[\"environment\"]}}'
-if ($LASTEXITCODE -ne 0) { Write-Host "  ⚠️  Policy may already be assigned or failed" -ForegroundColor DarkYellow }
+if ($LASTEXITCODE -ne 0) { Write-Host "  [WARN]  Policy may already be assigned or failed" -ForegroundColor DarkYellow }
 
 # Policy 3: Allowed registries
 Write-Host ""
-Write-Host "  📌 Policy: Only allow trusted registries" -ForegroundColor White
+Write-Host "  [PIN] Policy: Only allow trusted registries" -ForegroundColor White
 az policy assignment create `
   --name "allowed-registries" `
   --display-name "[Arc Workshop] Only allow trusted registries" `
   --policy "febd0533-8e55-448f-b837-bd0e06f16469" `
   --scope $clusterId `
   --params '{\"effect\":{\"value\":\"Deny\"},\"allowedContainerImagesRegex\":{\"value\":\"^(docker\\\\.io|mcr\\\\.microsoft\\\\.com|ghcr\\\\.io)/.*$\"}}'
-if ($LASTEXITCODE -ne 0) { Write-Host "  ⚠️  Policy may already be assigned or failed" -ForegroundColor DarkYellow }
+if ($LASTEXITCODE -ne 0) { Write-Host "  [WARN]  Policy may already be assigned or failed" -ForegroundColor DarkYellow }
 
 # --- 4. Verify policy assignments ---
 Write-Host ""
-Write-Host "🔍 Verifying policy assignments..." -ForegroundColor Yellow
+Write-Host "[CHECK] Verifying policy assignments..." -ForegroundColor Yellow
 az policy assignment list `
   --scope $clusterId `
   --query "[].{name:name, displayName:displayName}" `
@@ -91,15 +91,15 @@ az policy assignment list `
 
 Write-Host ""
 Write-Host "============================================"                                     -ForegroundColor Cyan
-Write-Host "  ✅ Azure Policy configured!"                                                    -ForegroundColor Green
+Write-Host "  [OK] Azure Policy configured!"                                                    -ForegroundColor Green
 Write-Host "  Policies: No privileged, require labels, trusted registries"                     -ForegroundColor Cyan
 Write-Host "============================================"                                     -ForegroundColor Cyan
 
 # --- 5. Validation note ---
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
-Write-Host "  ⚠️  Important: Policy sync delay"              -ForegroundColor Yellow
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
+Write-Host "  [WARN]  Important: Policy sync delay"              -ForegroundColor Yellow
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "  Policies need 15-30 min to sync to the cluster via Gatekeeper." -ForegroundColor White
 Write-Host "  Continue with the next sections and come back to validate." -ForegroundColor White

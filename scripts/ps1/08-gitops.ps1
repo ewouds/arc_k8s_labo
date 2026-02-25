@@ -15,14 +15,14 @@ $gitopsRepoUrl = "https://github.com/ewouds/arc_k8s_labo"
 $gitopsBranch = "master"
 
 Write-Host ""
-Write-Host "📋 Configuration:" -ForegroundColor Yellow
+Write-Host "[INFO] Configuration:" -ForegroundColor Yellow
 Write-Host "  Resource Group: $resourceGroup"
 Write-Host "  Cluster Name:   $clusterName"
 Write-Host "  GitOps Repo:    $gitopsRepoUrl"
 
 # --- 1. Install Flux extension ---
 Write-Host ""
-Write-Host "📦 Installing Flux extension..." -ForegroundColor Yellow
+Write-Host "[INSTALL] Installing Flux extension..." -ForegroundColor Yellow
 
 az k8s-extension create `
   --name flux `
@@ -32,7 +32,7 @@ az k8s-extension create `
   --extension-type microsoft.flux 2>$null
 
 Write-Host ""
-Write-Host "⏳ Verifying Flux extension..." -ForegroundColor DarkYellow
+Write-Host "[WAIT] Verifying Flux extension..." -ForegroundColor DarkYellow
 az k8s-extension show `
   --name flux `
   --cluster-name $clusterName `
@@ -43,7 +43,7 @@ az k8s-extension show `
 
 # --- 2. Create GitOps Flux configuration ---
 Write-Host ""
-Write-Host "🔗 Creating Flux GitOps configuration..." -ForegroundColor Yellow
+Write-Host "[LINK] Creating Flux GitOps configuration..." -ForegroundColor Yellow
 
 az k8s-configuration flux create `
   --name demo-gitops `
@@ -58,7 +58,7 @@ az k8s-configuration flux create `
 
 # --- 3. Show status ---
 Write-Host ""
-Write-Host "📊 GitOps configuration status:" -ForegroundColor Yellow
+Write-Host "[STATS] GitOps configuration status:" -ForegroundColor Yellow
 az k8s-configuration flux list `
   --cluster-name $clusterName `
   --resource-group $resourceGroup `
@@ -68,7 +68,7 @@ az k8s-configuration flux list `
 
 # --- 4. Explain the workflow ---
 Write-Host ""
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 Write-Host "  GitOps Workflow:" -ForegroundColor White
 Write-Host "  1. Dev pushes to Git"
 Write-Host "  2. Flux detects change (pull-based)"
@@ -76,15 +76,15 @@ Write-Host "  3. Flux applies to cluster"
 Write-Host "  4. Azure shows compliance"
 Write-Host ""
 Write-Host "  Benefits:"
-Write-Host "  • Same flow for Arc + AKS"
-Write-Host "  • Drift auto-remediation"
-Write-Host "  • Audit trail via Git"
+Write-Host "  * Same flow for Arc + AKS"
+Write-Host "  * Drift auto-remediation"
+Write-Host "  * Audit trail via Git"
 Write-Host ""
 Write-Host "  Portal: Arc cluster > GitOps"
-Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor DarkGray
+Write-Host "==========================================" -ForegroundColor DarkGray
 
 Write-Host ""
 Write-Host "============================================"                        -ForegroundColor Cyan
-Write-Host "  ✅ GitOps configured!"                                             -ForegroundColor Green
-Write-Host "  🔄 Flux watches: $gitopsRepoUrl"                                   -ForegroundColor Cyan
+Write-Host "  [OK] GitOps configured!"                                             -ForegroundColor Green
+Write-Host "  [SYNC] Flux watches: $gitopsRepoUrl"                                   -ForegroundColor Cyan
 Write-Host "============================================"                        -ForegroundColor Cyan

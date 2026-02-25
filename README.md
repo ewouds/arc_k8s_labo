@@ -53,6 +53,7 @@ arc_k8s/
 │   │   ├── 07-monitoring.sh
 │   │   ├── 08-gitops.sh
 │   │   ├── 09-inventory.sh
+│   │   ├── 10-service-mesh.sh
 │   │   ├── postprovision.sh          # Post-provision hook (AKS workload)
 │   │   └── 99-cleanup.sh
 │   └── ps1/                      # PowerShell scripts (Windows native)
@@ -66,19 +67,30 @@ arc_k8s/
 │       ├── 07-monitoring.ps1
 │       ├── 08-gitops.ps1
 │       ├── 09-inventory.ps1
+│       ├── 10-service-mesh.ps1
 │       ├── postprovision.ps1      # Post-provision hook (AKS workload)
 │       └── 99-cleanup.ps1
 │
 ├── k8s/                          # Kubernetes manifests for demos
 │   ├── demo-app.yaml             # Nginx demo deployment (step 4)
-│   └── privileged-pod.yaml       # Privileged pod (blocked by policy, step 5)
+│   ├── privileged-pod.yaml       # Privileged pod (blocked by policy, step 5)
+│   └── mesh-demo/                # Service mesh demo (step 10)
+│       ├── namespace.yaml
+│       ├── frontend.yaml
+│       ├── backend-v1.yaml
+│       ├── backend-v2.yaml
+│       ├── backend-service.yaml
+│       └── traffic-split.yaml
 │
 └── gitops/                       # GitOps source manifests (step 8)
     ├── kustomization.yaml
     ├── namespaces/
-    │   └── demo-ns.yaml
+    │   ├── demo-ns.yaml
+    │   └── mesh-demo-ns.yaml
     └── apps/
-        └── hello-arc.yaml
+        ├── hello-arc.yaml
+        ├── mesh-demo.yaml
+        └── mesh-canary.yaml
 ```
 
 ## Prerequisites
@@ -110,7 +122,8 @@ See the workshop guide in your preferred language:
 | 7    | 10 min   | Monitoring & Container Insights |
 | 8    | 10 min   | GitOps with Flux                |
 | 9    | 5 min    | Inventory management            |
-| 10   | 5 min    | Copilot for Azure               |
+| 10   | 15 min   | Service Mesh on Arc             |
+| 11   | 5 min    | Copilot for Azure               |
 | —    | 5 min    | Q&A + Cleanup                   |
 
 ## Cleanup

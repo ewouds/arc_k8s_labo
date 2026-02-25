@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mesh-demo
+  labels:
+    environment: workshop
+    linkerd.io/inject: enabled
+  annotations:
+    description: "Service mesh demo namespace — deployed via Arc GitOps"

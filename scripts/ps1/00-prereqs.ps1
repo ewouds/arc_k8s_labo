@@ -10,36 +10,36 @@ Write-Host "============================================" -ForegroundColor Cyan
 
 # --- 1. Check required CLI tools ---
 Write-Host ""
-Write-Host "🔍 Checking required tools..." -ForegroundColor Yellow
+Write-Host "[CHECK] Checking required tools..." -ForegroundColor Yellow
 
-try { $azVer = (az version | ConvertFrom-Json).'azure-cli'; Write-Host "  ✅ Azure CLI $azVer" -ForegroundColor Green }
-catch { Write-Host "  ❌ Azure CLI (az) not found. Install: https://aka.ms/InstallAzureCLI" -ForegroundColor Red; exit 1 }
+try { $azVer = (az version | ConvertFrom-Json).'azure-cli'; Write-Host "  [OK] Azure CLI $azVer" -ForegroundColor Green }
+catch { Write-Host "  [ERROR] Azure CLI (az) not found. Install: https://aka.ms/InstallAzureCLI" -ForegroundColor Red; exit 1 }
 
-try { $azdVer = azd version; Write-Host "  ✅ Azure Developer CLI $azdVer" -ForegroundColor Green }
-catch { Write-Host "  ❌ Azure Developer CLI (azd) not found. Install: https://aka.ms/azd-install" -ForegroundColor Red; exit 1 }
+try { $azdVer = azd version; Write-Host "  [OK] Azure Developer CLI $azdVer" -ForegroundColor Green }
+catch { Write-Host "  [ERROR] Azure Developer CLI (azd) not found. Install: https://aka.ms/azd-install" -ForegroundColor Red; exit 1 }
 
-if (Get-Command kubectl -ErrorAction SilentlyContinue) { Write-Host "  ✅ kubectl found" -ForegroundColor Green }
-else { Write-Host "  ⚠️  kubectl not found (optional)" -ForegroundColor DarkYellow }
+if (Get-Command kubectl -ErrorAction SilentlyContinue) { Write-Host "  [OK] kubectl found" -ForegroundColor Green }
+else { Write-Host "  [WARN]  kubectl not found (optional)" -ForegroundColor DarkYellow }
 
-if (Get-Command ssh -ErrorAction SilentlyContinue) { Write-Host "  ✅ SSH client found" -ForegroundColor Green }
-else { Write-Host "  ⚠️  SSH client not found" -ForegroundColor DarkYellow }
+if (Get-Command ssh -ErrorAction SilentlyContinue) { Write-Host "  [OK] SSH client found" -ForegroundColor Green }
+else { Write-Host "  [WARN]  SSH client not found" -ForegroundColor DarkYellow }
 
 # --- 2. Verify Azure login ---
 Write-Host ""
-Write-Host "🔍 Checking Azure login..." -ForegroundColor Yellow
+Write-Host "[CHECK] Checking Azure login..." -ForegroundColor Yellow
 try {
     $account = az account show | ConvertFrom-Json
-    Write-Host "  ✅ Logged in as: $($account.user.name)" -ForegroundColor Green
+    Write-Host "  [OK] Logged in as: $($account.user.name)" -ForegroundColor Green
     Write-Host "  Subscription:    $($account.name) ($($account.id))" 
 }
 catch {
-    Write-Host "  ❌ Not logged in. Run: az login" -ForegroundColor Red
+    Write-Host "  [ERROR] Not logged in. Run: az login" -ForegroundColor Red
     exit 1
 }
 
 # --- 3. Register required Azure Resource Providers ---
 Write-Host ""
-Write-Host "📋 Registering required Azure resource providers..." -ForegroundColor Yellow
+Write-Host "[INFO] Registering required Azure resource providers..." -ForegroundColor Yellow
 
 $providers = @(
     "Microsoft.Kubernetes"              # Arc-enabled K8s
@@ -55,18 +55,18 @@ $providers = @(
 foreach ($provider in $providers) {
     $state = (az provider show --namespace $provider --query "registrationState" -o tsv 2>$null)
     if ($state -eq "Registered") {
-        Write-Host "  ✅ $provider (already registered)" -ForegroundColor Green
+        Write-Host "  [OK] $provider (already registered)" -ForegroundColor Green
     }
     else {
-        Write-Host "  ⏳ Registering $provider..." -ForegroundColor DarkYellow
+        Write-Host "  [WAIT] Registering $provider..." -ForegroundColor DarkYellow
         az provider register --namespace $provider --wait | Out-Null
-        Write-Host "  ✅ $provider (registered)" -ForegroundColor Green
+        Write-Host "  [OK] $provider (registered)" -ForegroundColor Green
     }
 }
 
 # --- 4. Install/update required Azure CLI extensions ---
 Write-Host ""
-Write-Host "📦 Installing/updating Azure CLI extensions..." -ForegroundColor Yellow
+Write-Host "[INSTALL] Installing/updating Azure CLI extensions..." -ForegroundColor Yellow
 
 $extensions = @(
     "connectedk8s"      # Arc-enabled Kubernetes
@@ -79,19 +79,19 @@ $extensions = @(
 foreach ($ext in $extensions) {
     $installed = az extension show --name $ext 2>$null
     if ($installed) {
-        Write-Host "  ✅ $ext (installed, upgrading...)" -ForegroundColor Green
+        Write-Host "  [OK] $ext (installed, upgrading...)" -ForegroundColor Green
         az extension update --name $ext 2>$null
     }
     else {
-        Write-Host "  ⏳ Installing $ext..." -ForegroundColor DarkYellow
+        Write-Host "  [WAIT] Installing $ext..." -ForegroundColor DarkYellow
         az extension add --name $ext --yes | Out-Null
-        Write-Host "  ✅ $ext (installed)" -ForegroundColor Green
+        Write-Host "  [OK] $ext (installed)" -ForegroundColor Green
     }
 }
 
 # --- 5. Check VM SKU capacity in selected region ---
 Write-Host ""
-Write-Host "🔍 Checking VM SKU availability..." -ForegroundColor Yellow
+Write-Host "[CHECK] Checking VM SKU availability..." -ForegroundColor Yellow
 
 $vmSize = if ($env:VM_SIZE) { $env:VM_SIZE } else { "Standard_D4s_v3" }
 $location = if ($env:AZURE_LOCATION) { $env:AZURE_LOCATION } else { $null }
@@ -101,7 +101,7 @@ if ($location) {
     $skuInfo = $skuJson | ConvertFrom-Json
 
     if (-not $skuInfo -or $skuInfo.Count -eq 0) {
-        Write-Host "  ❌ VM size '$vmSize' is not available in region '$location'." -ForegroundColor Red
+        Write-Host "  [ERROR] VM size '$vmSize' is not available in region '$location'." -ForegroundColor Red
         Write-Host "     Choose a different region or set VM_SIZE to an available SKU." -ForegroundColor Red
         Write-Host "     Check available sizes: az vm list-skus --location $location --resource-type virtualMachines --query `"[?name=='$vmSize']`" -o table" -ForegroundColor DarkYellow
         exit 1
@@ -111,7 +111,7 @@ if ($location) {
         $_.restrictions | Where-Object { $_.type -eq 'Location' }
     }
     if ($restricted) {
-        Write-Host "  ❌ VM size '$vmSize' is restricted in region '$location'." -ForegroundColor Red
+        Write-Host "  [ERROR] VM size '$vmSize' is restricted in region '$location'." -ForegroundColor Red
         Write-Host "     Reason: $($restricted[0].restrictions[0].reasonCode)" -ForegroundColor Red
         Write-Host "     Choose a different region or set VM_SIZE to an available SKU." -ForegroundColor Red
         exit 1
@@ -122,17 +122,17 @@ if ($location) {
         $_.restrictions | Where-Object { $_.type -eq 'Zone' }
     }
     if ($zoneRestricted) {
-        Write-Host "  ⚠️  VM size '$vmSize' has zone restrictions in '$location' (some AZs unavailable)" -ForegroundColor DarkYellow
+        Write-Host "  [WARN]  VM size '$vmSize' has zone restrictions in '$location' (some AZs unavailable)" -ForegroundColor DarkYellow
     }
 
-    Write-Host "  ✅ VM size '$vmSize' is available in '$location'" -ForegroundColor Green
+    Write-Host "  [OK] VM size '$vmSize' is available in '$location'" -ForegroundColor Green
 }
 else {
-    Write-Host "  ⏭️  Skipping (AZURE_LOCATION not set yet — azd will prompt)" -ForegroundColor DarkYellow
+    Write-Host "hey" -ForegroundColor DarkYellow
 }
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  ✅ All prerequisites satisfied!"          -ForegroundColor Green
+Write-Host "  [OK] All prerequisites satisfied!"          -ForegroundColor Green
 Write-Host "  Next: run 'azd provision' or 'azd up'"    -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
