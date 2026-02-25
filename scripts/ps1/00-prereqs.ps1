@@ -1,6 +1,6 @@
 # ============================================================================
 # Script 00 - Prerequisites Check & Azure Provider Registration
-# Run BEFORE deploying infrastructure (az deployment)
+# Run BEFORE deploying infrastructure (azd up or az deployment)
 # ============================================================================
 $ErrorActionPreference = "Stop"
 
@@ -17,6 +17,12 @@ catch { Write-Host "  [ERROR] Azure CLI (az) not found. Install: https://aka.ms/
 
 try { $bicepVer = az bicep version 2>&1; Write-Host "  [OK] Bicep CLI available" -ForegroundColor Green }
 catch { Write-Host "  [WARN]  Bicep CLI not found. Install: az bicep install" -ForegroundColor DarkYellow }
+
+try { $azdVer = (azd version 2>&1).Trim(); Write-Host "  [OK] Azure Developer CLI $azdVer" -ForegroundColor Green }
+catch {
+    Write-Host "  [WARN]  Azure Developer CLI (azd) not found (recommended). Install: https://aka.ms/azd-install" -ForegroundColor DarkYellow
+    Write-Host "          You can still deploy with: az deployment sub create (see workshop for details)" -ForegroundColor DarkYellow 
+}
 
 if (Get-Command kubectl -ErrorAction SilentlyContinue) { Write-Host "  [OK] kubectl found" -ForegroundColor Green }
 else { Write-Host "  [WARN]  kubectl not found (optional)" -ForegroundColor DarkYellow }
@@ -134,5 +140,5 @@ else {
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  [OK] All prerequisites satisfied!"          -ForegroundColor Green
-Write-Host "  Next: run 'az deployment sub create'"      -ForegroundColor Cyan
+Write-Host "  Next: run 'azd up' (or 'az deployment sub create')"  -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan

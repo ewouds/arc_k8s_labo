@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================================================
 # Script 00 - Prerequisites Check & Azure Provider Registration
-# Run BEFORE `azd provision` (also used as AZD preprovision hook)
+# Run BEFORE `azd provision` or `az deployment sub create`
 # ============================================================================
 set -e
 
@@ -16,8 +16,10 @@ echo "🔍 Checking required tools..."
 command -v az >/dev/null 2>&1 || { echo "❌ Azure CLI (az) not found. Install: https://aka.ms/InstallAzureCLI"; exit 1; }
 echo "  ✅ Azure CLI $(az version --query '\"azure-cli\"' -o tsv)"
 
-command -v azd >/dev/null 2>&1 || { echo "❌ Azure Developer CLI (azd) not found. Install: https://aka.ms/azd-install"; exit 1; }
-echo "  ✅ Azure Developer CLI $(azd version)"
+command -v azd >/dev/null 2>&1 && echo "  ✅ Azure Developer CLI $(azd version)" || {
+  echo "  ⚠️  Azure Developer CLI (azd) not found (recommended). Install: https://aka.ms/azd-install"
+  echo "          You can still deploy with: az deployment sub create (see workshop for details)"
+}
 
 command -v kubectl >/dev/null 2>&1 || echo "  ⚠️  kubectl not found (optional, install: https://kubernetes.io/docs/tasks/tools/)"
 command -v ssh >/dev/null 2>&1 || echo "  ⚠️  SSH client not found"
@@ -138,5 +140,5 @@ fi
 echo ""
 echo "============================================"
 echo "  ✅ All prerequisites satisfied!"
-echo "  Next: run 'azd provision' or 'azd up'"
+echo "  Next: run 'azd provision' or 'azd up' (or 'az deployment sub create')"
 echo "============================================"

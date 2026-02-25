@@ -3,8 +3,8 @@
 > **Audience:** Cloud Engineers / DevOps  
 > **Level:** Intermediate – Advanced  
 > **Duration:** 1–1.5 hours (self-paced)  
-> **Prerequisites:** Azure subscription (Owner/Contributor), Azure CLI (with Bicep) installed  
-> **Repository:** This folder is a fully self-contained Azure deployment project
+> **Prerequisites:** Azure subscription (Owner/Contributor), Azure CLI + AZD CLI installed  
+> **Repository:** This folder is a fully self-contained AZD project
 
 > [!WARNING] **Security Disclaimer — Lab Use Only**  
 > This lab is designed for **learning and demonstration purposes**. Several practices used here do **not** follow security best practices for production environments. Examples include:
@@ -32,7 +32,7 @@ In this hands-on lab you will set up an on-premises Kubernetes cluster, connect 
 
 By the end of this lab you will be able to:
 
-- Deploy infrastructure with Azure CLI and Bicep
+- Deploy infrastructure with Azure Developer CLI (AZD) and Bicep
 - Install a lightweight K3s cluster and connect it to Azure Arc
 - Deploy containers to a remote cluster without SSH or VPN (Cluster Connect)
 - Apply governance policies across clusters with Azure Policy
@@ -98,7 +98,7 @@ By the end of this lab you will be able to:
 | #   | Exercise                                   | Duration    | Type              |
 | --- | ------------------------------------------ | ----------- | ----------------- |
 | 0   | **Introduction & Architecture**            | 5 min       | Read              |
-| 1   | **Deploy Infrastructure (az CLI + Bicep)**  | 10 min      | Hands-on          |
+| 1   | **Deploy Infrastructure (AZD + Bicep)**      | 10 min      | Hands-on          |
 | 2   | **SSH & Install K3s (Rancher)**            | 10 min      | Hands-on          |
 | 3   | **Arc Onboarding**                         | 10 min      | Hands-on          |
 | 4   | **Deploy Container from Azure**            | 10 min      | Hands-on          |
@@ -122,11 +122,35 @@ Before starting the exercises, prepare your environment. Ideally, run through th
 # 1. Clone this repo
 git clone https://github.com/ewouds/arc_k8s_labo.git && cd arc_k8s_labo
 
-# 2. Run the prerequisites check to verify all tools are installed
+# 2. Initialize AZD
+azd init
+
+# 3. Run the prerequisites check to verify all tools are installed
 bash scripts/sh/00-prereqs.sh      # Linux/WSL/Git Bash
 # .\scripts\ps1\00-prereqs.ps1    # PowerShell
 
-# 3. Deploy infrastructure (takes ~5 min)
+# 4. Deploy infrastructure (takes ~5 min)
+azd up
+#   Environment name: arcworkshop
+#   Location: westeurope
+#   VM password: <choose a strong password>
+#   deployAks: -> answer 'true' if you want the optional AKS cluster (Exercise 9)
+
+# 5. Note the outputs — you'll need the VM IP throughout the lab
+azd env get-values
+```
+
+> **Tip:** Infrastructure deployment takes ~5 minutes (~10 if you include the optional AKS cluster). If you're short on time, deploy it before starting the lab so you can jump straight into the exercises.
+>
+> **Optional AKS cluster:** During `azd up` you will be asked whether to deploy an optional AKS cluster (`deployAks`). This is only used in Exercise 9 (Inventory Management) for side-by-side Resource Graph queries comparing Arc and AKS. It deploys a single-node Standard_B2s cluster with a sample workload -- extra cost: ~EUR 0.10/hour.
+
+<details>
+<summary><strong>Alternative: deploy with az CLI + Bicep (if AZD is not available)</strong></summary>
+
+If you cannot install AZD, you can deploy directly with the Azure CLI:
+
+```bash
+# Deploy infrastructure
 az deployment sub create \
   --location westeurope \
   --template-file infra/main.bicep \
@@ -134,15 +158,15 @@ az deployment sub create \
   --parameters vmAdminPassword='<choose a strong password>'
 #   Optional: add --parameters deployAks=true for the AKS cluster (Exercise 9)
 
-# 4. Note the outputs — you'll need the VM IP throughout the lab
+# Retrieve outputs
 az deployment sub show \
   --name main \
   --query properties.outputs -o json
 ```
 
-> **Tip:** Infrastructure deployment takes ~5 minutes (~10 if you include the optional AKS cluster). If you're short on time, deploy it before starting the lab so you can jump straight into the exercises.
->
-> **Optional AKS cluster:** Add `--parameters deployAks=true` to your deployment command if you want an optional AKS cluster. This is only used in Exercise 9 (Inventory Management) for side-by-side Resource Graph queries comparing Arc and AKS. It deploys a single-node Standard_B2s cluster with a sample workload -- extra cost: ~EUR 0.10/hour.
+Whenever the workshop mentions `azd env get-values`, use the `az deployment sub show` command above instead.
+
+</details>
 
 ---
 
@@ -169,15 +193,15 @@ Before diving in, take a moment to understand **what Azure Arc is** and **why it
 - Set up a K3s cluster in a VM (simulates on-prem)
 - Connect that cluster to Azure Arc
 - Explore all enterprise features: Policy, Defender, Monitoring, GitOps
-- Everything automated with Infrastructure as Code (Bicep + az CLI)
+- Everything automated with Infrastructure as Code (Bicep + AZD)
 
 > **Key takeaway:** _"Arc brings Azure to your infrastructure, not your infrastructure to Azure."_
 
 ---
 
-## Exercise 1: Deploy Infrastructure -- az CLI + Bicep (10 min)
+## Exercise 1: Deploy Infrastructure -- AZD + Bicep (10 min)
 
-In this exercise you will deploy the lab infrastructure using the Azure CLI and Bicep templates.
+In this exercise you will deploy the lab infrastructure using Azure Developer CLI (AZD) and Bicep templates.
 
 ### What you're deploying
 
@@ -185,15 +209,15 @@ In this exercise you will deploy the lab infrastructure using the Azure CLI and 
 - A VNet with NSG (SSH, HTTPS, K8s API open)
 - A Log Analytics Workspace (for monitoring later)
 - *(Optional)* An AKS cluster for inventory comparison (Exercise 9)
-- Everything via **Bicep** and **Azure CLI**
+- Everything via **Bicep** and **Azure Developer CLI (AZD)**
 
-### Why Bicep + az CLI?
+### Why AZD?
 
-- Bicep is a domain-specific language for Azure resource deployment
-- Native integration with Azure CLI (`az deployment`)
-- Simple `az deployment sub create` to deploy everything
-- Full control over parameters, outputs, and deployment scopes
-- No additional tooling required beyond Azure CLI
+- AZD is the developer-first CLI for Azure
+- Combines infra provisioning (Bicep) with app deployment
+- Simple `azd up` to deploy everything
+- Environment management (dev, staging, prod)
+- Built-in hooks for pre/post provisioning
 
 ### Steps
 
@@ -207,7 +231,7 @@ Take a look at the key files:
 
 | File                               | Purpose                                                      |
 | ---------------------------------- | ------------------------------------------------------------ |
-| `azure.yaml`                       | Project metadata (can be ignored when using az CLI directly)  |
+| `azure.yaml`                       | AZD project definition -- points to infra/main.bicep          |
 | `infra/main.bicep`                 | Main orchestrator — subscription scope, creates RG + modules |
 | `infra/modules/network.bicep`      | VNet, Subnet, NSG, Public IP                                 |
 | `infra/modules/vm.bicep`           | Ubuntu 22.04 VM with password auth                           |
@@ -233,24 +257,45 @@ cat infra/modules/network.bicep
 **Step 3 -- Deploy the infrastructure (skip if already deployed during prerequisites):**
 
 ```bash
+azd up
+#    Enter environment name: arcworkshop
+#    Select location: West Europe
+#    Enter VM password: <strong-password>
+```
+
+<details>
+<summary><strong>Alternative: az CLI + Bicep</strong></summary>
+
+```bash
 az deployment sub create \
   --location westeurope \
   --template-file infra/main.bicep \
   --parameters infra/main.parameters.json \
   --parameters vmAdminPassword='<strong-password>'
-#   Optional: --parameters deployAks=true
 ```
 
+</details>
+
 **Step 4 -- Retrieve the outputs:**
+
+```bash
+azd env get-values
+#    VM_PUBLIC_IP=x.x.x.x
+#    SSH_COMMAND=ssh azureuser@x.x.x.x
+```
+
+<details>
+<summary><strong>Alternative: az CLI</strong></summary>
 
 ```bash
 az deployment sub show \
   --name main \
   --query properties.outputs -o json
-#    VM_PUBLIC_IP, SSH_COMMAND, LOG_ANALYTICS_WORKSPACE_ID, etc.
 ```
 
-> **Key takeaway:** _"With az CLI + Bicep your entire lab environment is reproducible. One command, everything is ready."_
+</details>
+
+> **Key takeaway:** _"With AZD + Bicep your entire lab environment is reproducible. One command, everything is ready."_
 
 ---
 
@@ -279,7 +324,7 @@ In this exercise you will SSH into the VM and install K3s — a lightweight, pro
 
 ```bash
 ssh azureuser@<VM_PUBLIC_IP>
-# (password from the Bicep deployment)
+# (password from azd deployment)
 ```
 
 **Step 2 — Run the installation script:**
@@ -878,9 +923,9 @@ In this exercise you will use Azure Resource Graph to query your entire Kubernet
 
 > **Optional AKS cluster for side-by-side comparison:**
 >
-> If you deployed with `deployAks = true` during infrastructure provisioning, an AKS cluster with a `hello-aks` sample workload is already running in your resource group. The queries below will show both cluster types side by side.
+> If you chose `deployAks = true` during `azd up` (or `--parameters deployAks=true` with az CLI), an AKS cluster with a `hello-aks` sample workload is already running in your resource group. The queries below will show both cluster types side by side.
 >
-> If you did **not** enable AKS, Query 4 below will only show your Arc cluster. You can re-deploy with `--parameters deployAks=true` at any time to add the AKS cluster.
+> If you did **not** enable AKS, Query 4 below will only show your Arc cluster. You can re-run `azd up` with `deployAks = true` (or re-deploy with `--parameters deployAks=true`) at any time to add the AKS cluster.
 
 ```bash
 # 1. Query all Arc-connected clusters
@@ -1160,10 +1205,13 @@ Try these prompts:
 When you're done with the lab, clean up the resources to avoid ongoing costs:
 
 ```bash
-# Option 1: Cleanup script (recommended)
+# Option 1: AZD (recommended -- removes everything)
+azd down --purge --force
+
+# Option 2: Cleanup script
 bash scripts/sh/99-cleanup.sh      # or: .\scripts\ps1\99-cleanup.ps1
 
-# Option 2: Delete the resource group directly
+# Option 3: Delete the resource group directly
 az group delete --name rg-arcworkshop --yes --no-wait
 ```
 
@@ -1242,7 +1290,7 @@ Before using Arc in production, consider:
 | GitOps with Flux v2 | [learn.microsoft.com/.../tutorial-use-gitops-flux2](https://learn.microsoft.com/azure/azure-arc/kubernetes/tutorial-use-gitops-flux2) |
 | Container Insights for Arc | [learn.microsoft.com/.../container-insights-enable-arc-enabled-clusters](https://learn.microsoft.com/azure/azure-monitor/containers/container-insights-enable-arc-enabled-clusters) |
 | Defender for Containers | [learn.microsoft.com/.../defender-for-containers-introduction](https://learn.microsoft.com/azure/defender-for-cloud/defender-for-containers-introduction) |
-| Azure Developer CLI (azd) (not required) | [learn.microsoft.com/.../azure-developer-cli/](https://learn.microsoft.com/azure/developer/azure-developer-cli/) |
+| Azure Developer CLI (azd) | [learn.microsoft.com/.../azure-developer-cli/](https://learn.microsoft.com/azure/developer/azure-developer-cli/) |
 | Azure Arc Jumpstart | [azurearcjumpstart.com](https://azurearcjumpstart.com/) |
 | Flux CD docs | [fluxcd.io/docs/](https://fluxcd.io/docs/) |
 | Linkerd service mesh | [linkerd.io](https://linkerd.io/) |
