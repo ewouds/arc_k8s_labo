@@ -8,7 +8,7 @@ Write-Host "  [CLEAN] Cleanup Workshop Resources"           -ForegroundColor Cya
 Write-Host "============================================" -ForegroundColor Cyan
 
 $resourceGroup = if ($env:RESOURCE_GROUP) { $env:RESOURCE_GROUP } else { "rg-arcworkshop" }
-$clusterName   = if ($env:CLUSTER_NAME)   { $env:CLUSTER_NAME }   else { "arc-k3s-cluster" }
+$clusterName = if ($env:CLUSTER_NAME) { $env:CLUSTER_NAME }   else { "arc-k3s-cluster" }
 
 Write-Host ""
 Write-Host "[WARN]  This will delete ALL resources:" -ForegroundColor Red
@@ -17,8 +17,8 @@ Write-Host ""
 
 $confirm = Read-Host "Are you sure? (y/N)"
 if ($confirm -notin @('y', 'Y')) {
-    Write-Host "Cancelled." -ForegroundColor DarkYellow
-    exit 0
+  Write-Host "Cancelled." -ForegroundColor DarkYellow
+  exit 0
 }
 
 # --- 1. Remove GitOps configs ---
@@ -36,13 +36,13 @@ Write-Host ""
 Write-Host "[DELETE] Removing Arc extensions..." -ForegroundColor Yellow
 $extensions = @("azuremonitor-containers", "microsoft.azuredefender.kubernetes", "azurepolicy", "flux")
 foreach ($ext in $extensions) {
-    Write-Host "  Removing $ext..."
-    az k8s-extension delete `
-      --name $ext `
-      --cluster-name $clusterName `
-      --resource-group $resourceGroup `
-      --cluster-type connectedClusters `
-      --yes 2>$null
+  Write-Host "  Removing $ext..."
+  az k8s-extension delete `
+    --name $ext `
+    --cluster-name $clusterName `
+    --resource-group $resourceGroup `
+    --cluster-type connectedClusters `
+    --yes 2>$null
 }
 
 # --- 3. Disconnect Arc ---
@@ -57,7 +57,7 @@ az connectedk8s delete `
 Write-Host ""
 Write-Host "[DELETE] Removing policy assignments..." -ForegroundColor Yellow
 @("no-privileged-containers", "require-env-label", "allowed-registries") | ForEach-Object {
-    az policy assignment delete --name $_ 2>$null
+  az policy assignment delete --name $_ 2>$null
 }
 
 # --- 5. Delete resource group ---
@@ -74,7 +74,7 @@ if ($aksRgExists -eq "true") {
 }
 
 Write-Host ""
-Write-Host "  Or use: azd down --purge --force" -ForegroundColor DarkYellow
+Write-Host "  Or use: az group delete --name rg-arcworkshop --yes" -ForegroundColor DarkYellow
 
 Write-Host ""
 Write-Host "============================================"                     -ForegroundColor Cyan

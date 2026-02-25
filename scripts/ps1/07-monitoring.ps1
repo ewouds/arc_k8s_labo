@@ -11,8 +11,12 @@ Write-Host "============================================" -ForegroundColor Cyan
 
 # --- Configuration ---
 $resourceGroup = if ($env:RESOURCE_GROUP) { $env:RESOURCE_GROUP } else { "rg-arcworkshop" }
-$clusterName   = if ($env:CLUSTER_NAME)   { $env:CLUSTER_NAME }   else { "arc-k3s-cluster" }
-$workspaceId   = (azd env get-value LOG_ANALYTICS_WORKSPACE_ID 2>$null)
+$clusterName = if ($env:CLUSTER_NAME) { $env:CLUSTER_NAME }   else { "arc-k3s-cluster" }
+$workspaceId = $env:LOG_ANALYTICS_WORKSPACE_ID
+if (-not $workspaceId) {
+  # Try to find workspace in the resource group
+  $workspaceId = (az monitor log-analytics workspace list -g $resourceGroup --query "[0].id" -o tsv 2>$null)
+}
 if (-not $workspaceId) { $workspaceId = Read-Host "Enter Log Analytics Workspace Resource ID" }
 
 Write-Host ""

@@ -14,8 +14,13 @@ Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  Install K3s on the VM via SSH"            -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 
-# --- Get VM IP from AZD ---
-$vmIp = (azd env get-value VM_PUBLIC_IP 2>$null)
+# --- Get VM IP ---
+$resourceGroup = if ($env:RESOURCE_GROUP) { $env:RESOURCE_GROUP } else { "rg-arcworkshop" }
+$vmName = if ($env:VM_NAME) { $env:VM_NAME } else { $null }
+$vmIp = $env:VM_PUBLIC_IP
+if (-not $vmIp -and $vmName) {
+    $vmIp = (az vm show -g $resourceGroup -n $vmName --show-details --query publicIps -o tsv 2>$null)
+}
 if (-not $vmIp) {
     $vmIp = Read-Host "Enter VM Public IP"
 }
